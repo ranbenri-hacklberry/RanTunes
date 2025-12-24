@@ -34,14 +34,15 @@ export const MusicProvider = ({ children }) => {
     // Spotify Player Hook
     const sdk = useSpotifyPlayer();
 
-    // Sync SDK state with context state
+    // Sync SDK state with context state - ONLY when on a Spotify song
     useEffect(() => {
-        if (currentSong?.file_path?.startsWith('spotify:')) {
+        const isSpotify = currentSong?.file_path?.startsWith('spotify:');
+        if (isSpotify && sdk.isReady) {
             setIsPlaying(sdk.isPlaying);
-            setCurrentTime(sdk.position / 1000);
+            if (sdk.position > 0) setCurrentTime(sdk.position / 1000);
             if (sdk.duration > 0) setDuration(sdk.duration / 1000);
         }
-    }, [sdk.isPlaying, sdk.position, sdk.duration, currentSong]);
+    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, currentSong]);
 
     // Skip threshold - if song was played less than 30% before skip, count as dislike
     const SKIP_THRESHOLD = 0.3;
@@ -209,35 +210,53 @@ export const MusicProvider = ({ children }) => {
     }, [currentUser]);
 
     // Play/Pause toggle
-    const togglePlay = useCallback(() => {
-        if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {
-            sdk.togglePlay();
+    const togglePlay = useCallback(async () => {
+        const isSpotify = currentSong?.file_path?.startsWith('spotify:');
+
+        if (isSpotify && sdk.isReady) {
+            try {
+                await sdk.togglePlay();
+            } catch (err) {
+                console.error('SDK togglePlay failed:', err);
+            }
         } else {
-            if (audioRef.current.paused) {
-                audioRef.current.play();
-            } else {
-                audioRef.current.pause();
+            if (audioRef.current.src) {
+                if (audioRef.current.paused) {
+                    audioRef.current.play().catch(e => console.error('Audio play failed:', e));
+                } else {
+                    audioRef.current.pause();
+                }
+            } else if (isSpotify) {
+                // If it's spotify but SDK not ready, try remote toggle
+                try {
+                    const SpotifyService = (await import('@/lib/spotifyService')).default;
+                    const state = await SpotifyService.getPlaybackState();
+                    if (state?.is_playing) await SpotifyService.pause();
+                    else await SpotifyService.play();
+                } catch (e) {
+                    console.error('Remote toggle failed:', e);
+                }
             }
         }
-    }, [currentSong, sdk]);
+    }, [currentSong, sdk.isReady, sdk.togglePlay]);
 
     // Pause
-    const pause = useCallback(() => {
+    const pause = useCallback(async () => {
         if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {
-            sdk.pause();
+            await sdk.pause();
         } else {
             audioRef.current.pause();
         }
-    }, [currentSong, sdk]);
+    }, [currentSong, sdk.isReady, sdk.pause]);
 
     // Resume
-    const resume = useCallback(() => {
+    const resume = useCallback(async () => {
         if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {
-            sdk.resume();
+            await sdk.resume();
         } else {
-            audioRef.current.play();
+            audioRef.current.play().catch(e => console.error('Audio resume failed:', e));
         }
-    }, [currentSong, sdk]);
+    }, [currentSong, sdk.isReady, sdk.resume]);
 
     // Next song
     const handleNext = useCallback(() => {
