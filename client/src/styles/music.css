@@ -1,3 +1,8 @@
+/* Tailwind CSS Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* =====================================================
    MUSIC APPLICATION STYLES
    Colorful, modern, with gradients and glass effects
