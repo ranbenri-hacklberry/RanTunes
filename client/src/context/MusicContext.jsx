@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
+import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
 
 const MusicContext = createContext(null);
 
@@ -29,6 +30,18 @@ export const MusicProvider = ({ children }) => {
 
     // Loading states
     const [isLoading, setIsLoading] = useState(false);
+
+    // Spotify Player Hook
+    const sdk = useSpotifyPlayer();
+
+    // Sync SDK state with context state
+    useEffect(() => {
+        if (currentSong?.file_path?.startsWith('spotify:')) {
+            setIsPlaying(sdk.isPlaying);
+            setCurrentTime(sdk.position / 1000);
+            if (sdk.duration > 0) setDuration(sdk.duration / 1000);
+        }
+    }, [sdk.isPlaying, sdk.position, sdk.duration, currentSong]);
 
     // Skip threshold - if song was played less than 30% before skip, count as dislike
     const SKIP_THRESHOLD = 0.3;
@@ -131,26 +144,23 @@ export const MusicProvider = ({ children }) => {
             const isSpotifyTrack = song.file_path?.startsWith('spotify:');
 
             if (isSpotifyTrack) {
-                // TRY to play via browser audio tag if preview_url exists
-                if (song.preview_url) {
-                    audioRef.current.src = song.preview_url;
-                    audioRef.current.load();
-                    try {
+                // If Spotify track, use SDK if ready, or fallback to remote
+                try {
+                    if (sdk.isReady && sdk.deviceId) {
+                        console.log('🎵 Playing via SDK device:', sdk.deviceId);
+                        await sdk.play(song.file_path);
+                    } else if (song.preview_url) {
+                        // Fallback to preview if SDK not ready
+                        audioRef.current.src = song.preview_url;
+                        audioRef.current.load();
                         await audioRef.current.play();
-                    } catch (e) {
-                        console.warn('Browser playback blocked, trying Spotify Remote...', e);
-                        // Fallback to remote control
+                    } else {
+                        // Ultimate fallback: Remote Control
                         const SpotifyService = (await import('@/lib/spotifyService')).default;
                         await SpotifyService.play({ uris: [song.file_path] });
                     }
-                } else {
-                    // No preview URL, must use Remote Control
-                    try {
-                        const SpotifyService = (await import('@/lib/spotifyService')).default;
-                        await SpotifyService.play({ uris: [song.file_path] });
-                    } catch (err) {
-                        console.error('Spotify execution failed:', err);
-                    }
+                } catch (err) {
+                    console.error('Spotify playback failed:', err);
                 }
                 setIsPlaying(true);
             } else {
@@ -200,22 +210,34 @@ export const MusicProvider = ({ children }) => {
 
     // Play/Pause toggle
     const togglePlay = useCallback(() => {
-        if (audioRef.current.paused) {
-            audioRef.current.play();
+        if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {
+            sdk.togglePlay();
         } else {
-            audioRef.current.pause();
+            if (audioRef.current.paused) {
+                audioRef.current.play();
+            } else {
+                audioRef.current.pause();
+            }
         }
-    }, []);
+    }, [currentSong, sdk]);
 
     // Pause
     const pause = useCallback(() => {
-        audioRef.current.pause();
-    }, []);
+        if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {
+            sdk.pause();
+        } else {
+            audioRef.current.pause();
+        }
+    }, [currentSong, sdk]);
 
     // Resume
     const resume = useCallback(() => {
-        audioRef.current.play();
-    }, []);
+        if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {
+            sdk.resume();
+        } else {
+            audioRef.current.play();
+        }
+    }, [currentSong, sdk]);
 
     // Next song
     const handleNext = useCallback(() => {
@@ -324,8 +346,12 @@ export const MusicProvider = ({ children }) => {
 
     // Seek to position
     const seek = useCallback((time) => {
-        audioRef.current.currentTime = time;
-    }, []);
+        if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {
+            sdk.seek(time * 1000);
+        } else {
+            audioRef.current.currentTime = time;
+        }
+    }, [currentSong, sdk]);
 
     // Rate a song (like/dislike only) - use backend service to bypass RLS
     const rateSong = useCallback(async (songId, rating) => {
