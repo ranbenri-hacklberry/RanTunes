@@ -47,9 +47,9 @@ const MusicPageContent = () => {
         checkMusicDriveConnection,
         refreshAll,
         addSongToPlaylist,
-        77: addSpotifyAlbum,
-        78: removeSpotifyAlbum,
-        79: scanMusicDirectory,
+        addSpotifyAlbum,
+        removeSpotifyAlbum,
+        scanMusicDirectory,
         fetchAlbumSongs,
         fetchPlaylists,
         fetchPlaylistSongs,
@@ -403,7 +403,7 @@ const MusicPageContent = () => {
 
             <div className="music-split-layout flex-1 flex">
                 {/* Right side - Vinyl Turntable */}
-                <div className="music-split-right order-last">
+                <div className="music-split-right">
                     <div className="flex flex-col items-center justify-center h-full">
                         <VinylTurntable
                             song={currentSong}
@@ -446,7 +446,7 @@ const MusicPageContent = () => {
                             <div className="text-center mt-8 bg-black/20 p-6 rounded-3xl backdrop-blur-sm border border-white/5 max-w-[280px]">
                                 <Music className="w-12 h-12 text-white/20 mx-auto mb-4" />
                                 <p className="text-white/60 font-medium">בחר שיר כדי להתחיל לנגן</p>
-                                <p className="text-white/30 text-sm mt-1">האלבומים שלך מופיעים מצד ימין</p>
+                                <p className="text-white/30 text-sm mt-1">האלבומים שלך מופיעים מצד שמאל</p>
                             </div>
                         )}
                     </div>
@@ -523,23 +523,7 @@ const MusicPageContent = () => {
                                 {/* Albums grid */}
                                 {activeTab === 'albums' && (
                                     <>
-                                        {/* PROMINENT ADD BUTTON FOR SPOTIFY */}
-                                        {musicSource === 'spotify' && isSpotifyConnected && (
-                                            <div className="mb-6">
-                                                <button
-                                                    onClick={() => setShowSpotifySearch(true)}
-                                                    className="w-full py-8 music-glass border-2 border-dashed border-green-500/30 rounded-3xl flex flex-col items-center justify-center gap-3 text-green-400 hover:bg-green-500/10 transition-all group shadow-xl"
-                                                >
-                                                    <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                        <Search className="w-8 h-8" />
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <h3 className="text-xl font-bold">חפש והוסף אלבומים מ-Spotify</h3>
-                                                        <p className="text-white/50 text-sm">הוסף מוזיקה חדשה לספרייה של בית הקפה</p>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        )}
+                                        {/* Grid starting directly */}
 
                                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                             {/* Special "Add Album" Card - Always first */}
