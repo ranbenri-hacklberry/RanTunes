@@ -466,56 +466,59 @@ const MusicPageContent = () => {
                 </div>
             </header>
 
+
             <div className="music-split-layout flex-1 flex">
-                {/* Right side - Vinyl Turntable */}
-                <div className="music-split-right order-last">
-                    <div className="flex flex-col items-center justify-center h-full">
-                        <VinylTurntable
-                            song={currentSong}
-                            isPlaying={isPlaying}
-                            albumArt={currentSong?.album?.cover_url}
-                        />
+                {/* Right side - Vinyl Turntable (only show when we have content) */}
+                {(currentSong || (albums.length > 0)) && (
+                    <div className="music-split-right order-last">
+                        <div className="flex flex-col items-center justify-center h-full">
+                            <VinylTurntable
+                                song={currentSong}
+                                isPlaying={isPlaying}
+                                albumArt={currentSong?.album?.cover_url}
+                            />
 
-                        {/* Player controls */}
-                        {currentSong && (
-                            <div className="flex items-center gap-4 mt-6" dir="ltr">
-                                <button
-                                    onClick={handlePrevious}
-                                    className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform"
-                                >
-                                    <SkipBack className="w-5 h-5 text-white" />
-                                </button>
+                            {/* Player controls */}
+                            {currentSong && (
+                                <div className="flex items-center gap-4 mt-6" dir="ltr">
+                                    <button
+                                        onClick={handlePrevious}
+                                        className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform"
+                                    >
+                                        <SkipBack className="w-5 h-5 text-white" />
+                                    </button>
 
-                                <button
-                                    onClick={togglePlay}
-                                    className="w-16 h-16 rounded-full music-gradient-purple flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
-                                >
-                                    {isPlaying ? (
-                                        <Pause className="w-7 h-7 text-white" />
-                                    ) : (
-                                        <Play className="w-7 h-7 text-white fill-white mr-[-3px]" />
-                                    )}
-                                </button>
+                                    <button
+                                        onClick={togglePlay}
+                                        className="w-16 h-16 rounded-full music-gradient-purple flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+                                    >
+                                        {isPlaying ? (
+                                            <Pause className="w-7 h-7 text-white" />
+                                        ) : (
+                                            <Play className="w-7 h-7 text-white fill-white mr-[-3px]" />
+                                        )}
+                                    </button>
 
-                                <button
-                                    onClick={handleNext}
-                                    className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform"
-                                >
-                                    <SkipForward className="w-5 h-5 text-white" />
-                                </button>
-                            </div>
-                        )}
+                                    <button
+                                        onClick={handleNext}
+                                        className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform"
+                                    >
+                                        <SkipForward className="w-5 h-5 text-white" />
+                                    </button>
+                                </div>
+                            )}
 
-                        {/* No song message */}
-                        {!currentSong && (
-                            <div className="text-center mt-8 bg-black/20 p-6 rounded-3xl backdrop-blur-sm border border-white/5 max-w-[280px]">
-                                <Music className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                                <p className="text-white/60 font-medium">בחר שיר כדי להתחיל לנגן</p>
-                                <p className="text-white/30 text-sm mt-1">האלבומים שלך מופיעים מצד ימין</p>
-                            </div>
-                        )}
+                            {/* No song message - only show if we have albums */}
+                            {!currentSong && albums.length > 0 && (
+                                <div className="text-center mt-8 bg-black/20 p-6 rounded-3xl backdrop-blur-sm border border-white/5 max-w-[280px]">
+                                    <Music className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                                    <p className="text-white/60 font-medium">בחר שיר כדי להתחיל לנגן</p>
+                                    <p className="text-white/30 text-sm mt-1">האלבומים שלך מופיעים מצד ימין</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Left side - Song list / Albums */}
                 <div className="music-split-left flex flex-col">
@@ -588,139 +591,98 @@ const MusicPageContent = () => {
                                 {/* Albums grid */}
                                 {activeTab === 'albums' && (
                                     <>
-                                        {/* PROMINENT ADD BUTTON FOR SPOTIFY */}
-                                        {musicSource === 'spotify' && isSpotifyConnected && (
-                                            <div className="mb-6">
+                                        {/* EMPTY STATE: Show single clean add button when no albums */}
+                                        {musicSource === 'spotify' && isSpotifyConnected && filteredAlbums.length === 0 && !isLoading ? (
+                                            <div className="flex flex-col items-center justify-center py-16">
                                                 <button
                                                     onClick={() => setShowSpotifySearch(true)}
-                                                    className="w-full py-8 music-glass border-2 border-dashed border-green-500/30 rounded-3xl flex flex-col items-center justify-center gap-3 text-green-400 hover:bg-green-500/10 transition-all group shadow-xl"
+                                                    className="w-full max-w-md py-12 music-glass border-2 border-dashed border-green-500/30 rounded-3xl flex flex-col items-center justify-center gap-4 text-green-400 hover:bg-green-500/10 transition-all group shadow-xl"
                                                 >
-                                                    <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                        <Search className="w-8 h-8" />
+                                                    <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                        <Search className="w-10 h-10" />
                                                     </div>
                                                     <div className="text-center">
-                                                        <h3 className="text-xl font-bold">חפש והוסף אלבומים מ-Spotify</h3>
-                                                        <p className="text-white/50 text-sm">הוסף מוזיקה חדשה לספרייה של בית הקפה</p>
+                                                        <h3 className="text-2xl font-bold mb-2">הוסף את האלבום הראשון</h3>
+                                                        <p className="text-white/50">חפש והוסף מוזיקה מ-Spotify</p>
                                                     </div>
                                                 </button>
                                             </div>
+                                        ) : (
+                                            /* Normal album grid with albums */
+                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {isLoading && albums.length === 0 ? (
+                                                    <div className="col-span-full flex items-center justify-center py-12">
+                                                        <div className="w-8 h-8 border-3 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
+                                                    </div>
+                                                ) : !musicSource && !isMusicDriveConnected ? (
+                                                    /* Source selection - when no source selected yet */
+                                                    <div className="col-span-full py-8">
+                                                        <div className="text-center mb-8">
+                                                            <Music className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                                                            <h2 className="text-white text-2xl font-bold mb-2">בחר מקור מוזיקה</h2>
+                                                            <p className="text-white/50">איך תרצה להאזין למוזיקה?</p>
+                                                        </div>
+
+                                                        <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
+                                                            <button
+                                                                onClick={() => handleSelectMusicSource('local')}
+                                                                className="flex-1 music-glass p-6 rounded-2xl border border-white/10 hover:border-purple-500/50 hover:bg-white/5 transition-all group"
+                                                            >
+                                                                <HardDrive className="w-12 h-12 text-blue-400 mx-auto mb-4 group-hover:scale-110 transition-transform" />
+                                                                <h3 className="text-white font-bold text-lg mb-2">כונן מקומי</h3>
+                                                                <p className="text-white/50 text-sm">נגן מוזיקה מכונן USB או תיקייה מקומית</p>
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => handleSelectMusicSource('spotify')}
+                                                                className="flex-1 music-glass p-6 rounded-2xl border border-white/10 hover:border-green-500/50 hover:bg-white/5 transition-all group"
+                                                            >
+                                                                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                                                                    <svg viewBox="0 0 24 24" className="w-7 h-7 text-black fill-current">
+                                                                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                                                                    </svg>
+                                                                </div>
+                                                                <h3 className="text-white font-bold text-lg mb-2">Spotify</h3>
+                                                                <p className="text-white/50 text-sm">התחבר לחשבון Spotify שלך</p>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : musicSource === 'local' && !isMusicDriveConnected ? (
+                                                    <div className="col-span-full text-center py-12">
+                                                        <HardDrive className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+                                                        <p className="text-white/60 text-lg mb-2">כונן המוזיקה לא מחובר</p>
+                                                        <p className="text-white/40 text-sm mb-4">חבר את הכונן ונסה שוב</p>
+                                                        <button onClick={handleRetryDisk} className="px-6 py-3 music-gradient-purple rounded-xl text-white font-medium">בדוק שוב</button>
+                                                    </div>
+                                                ) : (
+                                                    /* Albums exist - show + button and album cards */
+                                                    <>
+                                                        {/* Small add button when we have albums */}
+                                                        {musicSource === 'spotify' && isSpotifyConnected && (
+                                                            <motion.div
+                                                                whileHover={{ scale: 1.02 }}
+                                                                onClick={() => setShowSpotifySearch(true)}
+                                                                className="music-album-card group bg-green-500/5 border-2 border-dashed border-green-500/20 flex flex-col items-center justify-center text-center p-4 hover:border-green-500/50 transition-all cursor-pointer min-h-[200px] rounded-2xl"
+                                                            >
+                                                                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                                    <Search className="w-6 h-6 text-green-500/70" />
+                                                                </div>
+                                                                <h3 className="text-white font-bold">הוסף אלבום</h3>
+                                                                <p className="text-white/40 text-xs">חפש ב-Spotify</p>
+                                                            </motion.div>
+                                                        )}
+                                                        {filteredAlbums.map(album => (
+                                                            <AlbumCard
+                                                                key={album.id}
+                                                                album={album}
+                                                                onClick={handleAlbumClick}
+                                                                onPlay={handleAlbumPlay}
+                                                            />
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </div>
                                         )}
-
-                                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {/* Local Device "Upload" Card */}
-                                            <motion.div
-                                                whileHover={{ scale: 1.02 }}
-                                                className="music-album-card group bg-green-500/5 border-2 border-dashed border-green-500/20 flex flex-col items-center justify-center text-center p-4 hover:border-green-500/50 transition-all cursor-pointer min-h-[200px] rounded-2xl"
-                                                onClick={() => document.getElementById('local-file-input').click()}
-                                            >
-                                                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                                    <Upload className="w-6 h-6 text-green-500/70" />
-                                                </div>
-                                                <h3 className="text-white font-bold">קבצים מהמכשיר</h3>
-                                                <p className="text-white/40 text-xs text-center">בחר שירים מהטלפון</p>
-                                                <input
-                                                    id="local-file-input"
-                                                    type="file"
-                                                    multiple
-                                                    accept="audio/*"
-                                                    className="hidden"
-                                                    onChange={async (e) => {
-                                                        const files = Array.from(e.target.files);
-                                                        if (files.length === 0) return;
-
-                                                        const newLocalSongs = files.map((file, idx) => ({
-                                                            id: `local-${Date.now()}-${idx}`,
-                                                            title: file.name.replace(/\.[^/.]+$/, ""),
-                                                            artist: { name: 'Local File' },
-                                                            duration_seconds: 0,
-                                                            isLocalDeviceFile: true,
-                                                            file_blob_url: URL.createObjectURL(file)
-                                                        }));
-
-                                                        // Add these as a temporary "Album" or just play them
-                                                        setSelectedAlbum({
-                                                            id: 'local-session',
-                                                            name: 'קבצים מהמכשיר',
-                                                            artist: { name: 'טעינה מקומית' },
-                                                            isLocalDeviceSession: true,
-                                                            isPlaylist: false // Treat as a session, not a playlist that needs replacement
-                                                        });
-                                                        setCurrentAlbumSongs(newLocalSongs);
-                                                    }}
-                                                />
-                                            </motion.div>
-
-                                            {/* Special "Spotify Search" Card */}
-                                            <motion.div
-                                                whileHover={{ scale: 1.02 }}
-                                                onClick={() => setShowSpotifySearch(true)}
-                                                className="music-album-card group bg-purple-500/5 border-2 border-dashed border-purple-500/20 flex flex-col items-center justify-center text-center p-4 hover:border-purple-500/50 transition-all cursor-pointer min-h-[200px] rounded-2xl"
-                                            >
-                                                <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                                    <Search className="w-6 h-6 text-purple-500/70" />
-                                                </div>
-                                                <h3 className="text-white font-bold">חיפוש ב-Spotify</h3>
-                                                <p className="text-white/40 text-xs">הוסף מוזיקה מהענן</p>
-                                            </motion.div>
-
-                                            {isLoading && albums.length === 0 ? (
-                                                <div className="col-span-full flex items-center justify-center py-12">
-                                                    <div className="w-8 h-8 border-3 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
-                                                </div>
-                                            ) : filteredAlbums.length === 0 && (musicSource || isMusicDriveConnected) ? (
-                                                /* If no albums found but source is ready, we just show the Add card alone (above) or a message */
-                                                null
-                                            ) : !musicSource && !isMusicDriveConnected ? (
-                                                /* Source selection - now integrated into grid area or handled separately */
-                                                <div className="col-span-full py-8">
-                                                    <div className="text-center mb-8">
-                                                        <Music className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-                                                        <h2 className="text-white text-2xl font-bold mb-2">בחר מקור מוזיקה</h2>
-                                                        <p className="text-white/50">איך תרצה להאזין למוזיקה?</p>
-                                                    </div>
-
-                                                    <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
-                                                        <button
-                                                            onClick={() => handleSelectMusicSource('local')}
-                                                            className="flex-1 music-glass p-6 rounded-2xl border border-white/10 hover:border-purple-500/50 hover:bg-white/5 transition-all group"
-                                                        >
-                                                            <HardDrive className="w-12 h-12 text-blue-400 mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                                                            <h3 className="text-white font-bold text-lg mb-2">כונן מקומי</h3>
-                                                            <p className="text-white/50 text-sm">נגן מוזיקה מכונן USB או תיקייה מקומית</p>
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => handleSelectMusicSource('spotify')}
-                                                            className="flex-1 music-glass p-6 rounded-2xl border border-white/10 hover:border-green-500/50 hover:bg-white/5 transition-all group"
-                                                        >
-                                                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                                                                <svg viewBox="0 0 24 24" className="w-7 h-7 text-black fill-current">
-                                                                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                                                                </svg>
-                                                            </div>
-                                                            <h3 className="text-white font-bold text-lg mb-2">Spotify</h3>
-                                                            <p className="text-white/50 text-sm">התחבר לחשבון Spotify שלך</p>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : musicSource === 'local' && !isMusicDriveConnected ? (
-                                                <div className="col-span-full text-center py-12">
-                                                    <HardDrive className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-                                                    <p className="text-white/60 text-lg mb-2">כונן המוזיקה לא מחובר</p>
-                                                    <p className="text-white/40 text-sm mb-4">חבר את הכונן ונסה שוב</p>
-                                                    <button onClick={handleRetryDisk} className="px-6 py-3 music-gradient-purple rounded-xl text-white font-medium">בדוק שוב</button>
-                                                </div>
-                                            ) : (
-                                                filteredAlbums.map(album => (
-                                                    <AlbumCard
-                                                        key={album.id}
-                                                        album={album}
-                                                        onClick={handleAlbumClick}
-                                                        onPlay={handleAlbumPlay}
-                                                    />
-                                                ))
-                                            )}
-                                        </div>
                                     </>
                                 )}
 
