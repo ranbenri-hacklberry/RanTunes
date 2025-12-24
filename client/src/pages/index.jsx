@@ -35,30 +35,8 @@ const MusicPageContent = () => {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
 
-    // Permission check: Only Managers and Admins
-    const isManager = currentUser?.access_level === 'Admin' ||
-        currentUser?.access_level === 'Manager' ||
-        currentUser?.is_admin;
-
-    if (!isManager) {
-        return (
-            <div className="min-h-screen music-gradient-dark flex flex-col items-center justify-center p-6 text-center" dir="rtl">
-                <div className="music-glass p-8 rounded-3xl max-w-md border border-red-500/30">
-                    <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <X className="w-10 h-10 text-red-400" />
-                    </div>
-                    <h2 className="text-white text-2xl font-black mb-4">גישה נדחתה</h2>
-                    <p className="text-white/60 mb-8">אין לך הרשאות מתאימות לגישה למערכת המוזיקה. דף זה מיועד למנהלים בלבד.</p>
-                    <button
-                        onClick={() => navigate('/mode-selection')}
-                        className="w-full py-4 music-gradient-purple text-white font-bold rounded-2xl hover:scale-[1.02] transition-transform shadow-lg"
-                    >
-                        חזרה לתפריט ראשי
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    // RanTunes is a standalone app - no permission check needed
+    // All users can access the music player
 
     const {
         albums,
