@@ -219,6 +219,16 @@ export const MusicProvider = ({ children }) => {
             } catch (err) {
                 console.error('SDK togglePlay failed:', err);
             }
+        } else if (isSpotify) {
+            // Remote control fallback
+            try {
+                const SpotifyService = (await import('@/lib/spotifyService')).default;
+                const state = await SpotifyService.getPlaybackState();
+                if (state?.is_playing) await SpotifyService.pause();
+                else await SpotifyService.play();
+            } catch (e) {
+                console.error('Remote toggle failed:', e);
+            }
         } else {
             if (audioRef.current.src) {
                 if (audioRef.current.paused) {
@@ -226,24 +236,20 @@ export const MusicProvider = ({ children }) => {
                 } else {
                     audioRef.current.pause();
                 }
-            } else if (isSpotify) {
-                // If it's spotify but SDK not ready, try remote toggle
-                try {
-                    const SpotifyService = (await import('@/lib/spotifyService')).default;
-                    const state = await SpotifyService.getPlaybackState();
-                    if (state?.is_playing) await SpotifyService.pause();
-                    else await SpotifyService.play();
-                } catch (e) {
-                    console.error('Remote toggle failed:', e);
-                }
             }
         }
-    }, [currentSong, sdk.isReady, sdk.togglePlay]);
+    }, [currentSong, sdk]);
 
     // Pause
     const pause = useCallback(async () => {
-        if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {
-            await sdk.pause();
+        const isSpotify = currentSong?.file_path?.startsWith('spotify:');
+        if (isSpotify) {
+            if (sdk.isReady) {
+                await sdk.pause();
+            } else {
+                const SpotifyService = (await import('@/lib/spotifyService')).default;
+                await SpotifyService.pause();
+            }
         } else {
             audioRef.current.pause();
         }
@@ -251,8 +257,14 @@ export const MusicProvider = ({ children }) => {
 
     // Resume
     const resume = useCallback(async () => {
-        if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {
-            await sdk.resume();
+        const isSpotify = currentSong?.file_path?.startsWith('spotify:');
+        if (isSpotify) {
+            if (sdk.isReady) {
+                await sdk.resume();
+            } else {
+                const SpotifyService = (await import('@/lib/spotifyService')).default;
+                await SpotifyService.play();
+            }
         } else {
             audioRef.current.play().catch(e => console.error('Audio resume failed:', e));
         }

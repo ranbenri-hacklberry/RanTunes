@@ -48,37 +48,37 @@ const AlbumCard = ({
 
     return (
         <div
-            className="music-album-card group"
+            className="music-album-card group relative aspect-square bg-white/5 rounded-2xl overflow-hidden cursor-pointer"
             onClick={handleClick}
         >
             {/* Album Cover */}
-            {coverUrl ? (
-                <img
-                    src={coverUrl}
-                    alt={album.name}
-                    className="music-album-cover"
-                    loading="lazy"
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                />
-            ) : (
-                <div className={`music-album-cover ${getGradient(album.name)} flex items-center justify-center`}>
-                    <Music className="w-16 h-16 text-white/50" />
-                </div>
-            )}
+            <div className="w-full h-full relative">
+                {coverUrl ? (
+                    <img
+                        src={coverUrl}
+                        alt={album.name}
+                        className="music-album-cover w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        loading="lazy"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                ) : (
+                    <div className={`w-full h-full ${getGradient(album.name)} flex items-center justify-center`}>
+                        <Music className="w-16 h-16 text-white/50" />
+                    </div>
+                )}
 
-            {/* Overlay with info */}
-            <div className="music-album-info">
+                {/* Dark Overlay on Hover */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </div>
+
+            {/* Info - Only visible on hover */}
+            <div className="music-album-info absolute inset-x-0 bottom-0 p-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                 <h3 className="text-white font-bold text-lg truncate">
                     {album.name}
                 </h3>
                 <p className="text-white/70 text-sm truncate">
                     {album.artist?.name || 'אמן לא ידוע'}
                 </p>
-                {album.release_year && (
-                    <p className="text-white/50 text-xs mt-1">
-                        {album.release_year}
-                    </p>
-                )}
             </div>
 
             {/* Play button */}
@@ -87,7 +87,7 @@ const AlbumCard = ({
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
                    w-14 h-14 rounded-full music-gradient-purple
                    flex items-center justify-center
-                   opacity-0 group-hover:opacity-100 transition-all duration-300
+                   opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300
                    shadow-lg hover:scale-110 z-10"
             >
                 <Play className="w-6 h-6 text-white fill-white mr-[-2px]" />
