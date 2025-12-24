@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Music, Disc, ListMusic, Search, Upload, RefreshCw,
     ArrowRight, Sparkles, User, Play, FolderOpen, Heart,
-    Pause, SkipForward, SkipBack, Trash2, X, HardDrive, AlertCircle, Home
+    Pause, SkipForward, SkipBack, Trash2, X, HardDrive, AlertCircle, LogOut, Pencil
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMusic } from '@/context/MusicContext';
@@ -74,6 +74,7 @@ const MusicPageContent = () => {
     const [showScanner, setShowScanner] = useState(false);
     const [currentAlbumSongs, setCurrentAlbumSongs] = useState([]);
     const [favoriteSongs, setFavoriteSongs] = useState([]);
+    const [editMode, setEditMode] = useState(false); // For deleting albums
 
     // NEW: Spotify & Music Source State
     const [showSpotifySearch, setShowSpotifySearch] = useState(false);
@@ -320,26 +321,17 @@ const MusicPageContent = () => {
 
     return (
         <div className="min-h-screen music-gradient-dark flex flex-col" dir="rtl">
-            {/* Full Width Header */}
+            {/* Clean Header */}
             <header className="flex items-center justify-between p-4 border-b border-white/10 bg-black/20 backdrop-blur-md z-10">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/')}
-                        className="w-10 h-10 rounded-full music-glass flex items-center justify-center hover:bg-white/10 transition-colors"
-                        title="חזרה לבית"
-                    >
-                        <Home className="w-5 h-5 text-white" />
-                    </button>
-
+                <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                         <Music className="w-6 h-6 text-purple-400" />
-                        <h1 className="text-white text-xl font-bold">מוזיקה</h1>
+                        <h1 className="text-white text-xl font-bold">RanTunes</h1>
                     </div>
 
-                    {/* Mini Player & Connection Group */}
-                    <div className="hidden lg:flex items-center gap-3 bg-white/5 p-1 px-2 rounded-2xl border border-white/10">
+                    {/* Mini Player */}
+                    <div className="hidden lg:block">
                         <MiniMusicPlayer />
-                        <ConnectionStatusBar isIntegrated={true} />
                     </div>
                 </div>
 
@@ -360,81 +352,27 @@ const MusicPageContent = () => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
-                    {/* Music Source Indicator - shows when source is selected */}
-                    {musicSource && (
-                        <div className="relative group">
-                            <button
-                                className={`px-3 py-2 rounded-xl flex items-center gap-2 transition-all text-sm font-medium
-                                    ${musicSource === 'spotify'
-                                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                        : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'}`}
-                            >
-                                {musicSource === 'spotify' ? (
-                                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-                                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                                    </svg>
-                                ) : (
-                                    <HardDrive className="w-4 h-4" />
-                                )}
-                                <span className="hidden sm:inline">
-                                    {musicSource === 'spotify' ? 'Spotify' : 'מקומי'}
-                                </span>
-                            </button>
-
-                            {/* Dropdown on hover */}
-                            <div className="absolute left-0 top-full mt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                                <div className="music-glass rounded-xl p-2 border border-white/20 shadow-xl min-w-[160px]">
-                                    <button
-                                        onClick={() => {
-                                            if (musicSource === 'spotify') {
-                                                SpotifyService.logout();
-                                                setIsSpotifyConnected(false);
-                                            }
-                                            setMusicSource(null);
-                                            localStorage.removeItem('music_source');
-                                            localStorage.removeItem('music_drive_path');
-                                        }}
-                                        className="w-full text-right px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors text-sm"
-                                    >
-                                        🔄 החלף מקור
-                                    </button>
-                                    {musicSource === 'spotify' && (
-                                        <button
-                                            onClick={() => {
-                                                SpotifyService.logout();
-                                                setIsSpotifyConnected(false);
-                                                setMusicSource(null);
-                                                localStorage.removeItem('music_source');
-                                            }}
-                                            className="w-full text-right px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-sm"
-                                        >
-                                            ❌ נתק Spotify
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
+                    {/* Spotify Indicator */}
+                    {musicSource === 'spotify' && isSpotifyConnected && (
+                        <div className="px-3 py-2 rounded-xl flex items-center gap-2 bg-green-500/20 text-green-400 text-sm font-medium">
+                            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                            </svg>
+                            <span className="hidden sm:inline">Spotify</span>
                         </div>
                     )}
 
-                    {/* Spotify Search Button - only when spotify is source and connected */}
-                    {musicSource === 'spotify' && isSpotifyConnected && (
-                        <button
-                            onClick={() => setShowSpotifySearch(true)}
-                            className="w-10 h-10 rounded-full bg-green-500/20 hover:bg-green-500/30 flex items-center justify-center transition-all"
-                            title="חפש אלבומים בספוטיפיי"
-                        >
-                            <Search className="w-5 h-5 text-green-400" />
-                        </button>
-                    )}
-
+                    {/* Edit Mode Toggle */}
                     <button
-                        onClick={() => setShowScanner(true)}
-                        className="w-10 h-10 rounded-full music-glass flex items-center justify-center"
-                        title="סרוק ספרייה"
+                        onClick={() => setEditMode(!editMode)}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all
+                            ${editMode ? 'bg-red-500/30 text-red-400' : 'music-glass text-white hover:bg-white/10'}`}
+                        title={editMode ? 'סיום עריכה' : 'עריכה'}
                     >
-                        <FolderOpen className="w-5 h-5 text-white" />
+                        <Pencil className="w-5 h-5" />
                     </button>
 
+                    {/* Refresh */}
                     <button
                         onClick={refreshAll}
                         className={`w-10 h-10 rounded-full music-glass flex items-center justify-center
@@ -442,6 +380,22 @@ const MusicPageContent = () => {
                         title="רענן"
                     >
                         <RefreshCw className="w-5 h-5 text-white" />
+                    </button>
+
+                    {/* Logout */}
+                    <button
+                        onClick={() => {
+                            if (musicSource === 'spotify') {
+                                SpotifyService.logout();
+                            }
+                            localStorage.removeItem('music_source');
+                            localStorage.removeItem('rantunes_user');
+                            window.location.reload();
+                        }}
+                        className="w-10 h-10 rounded-full music-glass flex items-center justify-center text-white hover:bg-red-500/20 hover:text-red-400 transition-all"
+                        title="התנתק"
+                    >
+                        <LogOut className="w-5 h-5" />
                     </button>
                 </div>
             </header>
@@ -586,7 +540,7 @@ const MusicPageContent = () => {
                                             </div>
                                         )}
 
-                                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                             {/* Special "Add Album" Card - Always first */}
                                             <motion.div
                                                 whileHover={{ scale: 1.02 }}
@@ -649,12 +603,27 @@ const MusicPageContent = () => {
                                                 </div>
                                             ) : (
                                                 filteredAlbums.map(album => (
-                                                    <AlbumCard
-                                                        key={album.id}
-                                                        album={album}
-                                                        onClick={handleAlbumClick}
-                                                        onPlay={handleAlbumPlay}
-                                                    />
+                                                    <div key={album.id} className="relative">
+                                                        {editMode && album.folder_path?.startsWith('spotify:') && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (confirm(`האם למחוק את "${album.name}"?`)) {
+                                                                        const spotifyId = album.folder_path.replace('spotify:album:', '');
+                                                                        removeSpotifyAlbum(spotifyId);
+                                                                    }
+                                                                }}
+                                                                className="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        <AlbumCard
+                                                            album={album}
+                                                            onClick={handleAlbumClick}
+                                                            onPlay={handleAlbumPlay}
+                                                        />
+                                                    </div>
                                                 ))
                                             )}
                                         </div>
@@ -688,7 +657,7 @@ const MusicPageContent = () => {
 
                                 {/* Artists grid */}
                                 {activeTab === 'artists' && (
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                         {!isMusicDriveConnected ? (
                                             <div className="col-span-full text-center py-12">
                                                 <div className="w-16 h-16 rounded-full bg-red-500/20 mb-4 flex items-center justify-center mx-auto">
@@ -721,7 +690,7 @@ const MusicPageContent = () => {
 
                                 {/* Playlists */}
                                 {activeTab === 'playlists' && (
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                         {!isMusicDriveConnected && filteredPlaylists.length === 0 ? (
                                             <div className="col-span-full text-center py-12">
                                                 <div className="w-16 h-16 rounded-full bg-red-500/20 mb-4 flex items-center justify-center mx-auto">
