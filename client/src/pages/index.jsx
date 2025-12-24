@@ -291,6 +291,7 @@ const MusicPageContent = () => {
                 duration_seconds: Math.round(t.duration_ms / 1000),
                 file_path: t.uri, // This is the spotify:track:ID
                 file_name: `${t.name}.spotify`,
+                preview_url: t.preview_url,
                 business_id: businessId
             }));
 
@@ -402,8 +403,8 @@ const MusicPageContent = () => {
             </header>
 
             <div className="music-split-layout flex-1 flex">
-                {/* Right side - Vinyl Turntable */}
-                <div className="music-split-right">
+                {/* Right side - Vinyl Turntable (order-last moves it to left in RTL) */}
+                <div className="music-split-right order-last">
                     <div className="flex flex-col items-center justify-center h-full">
                         <VinylTurntable
                             song={currentSong}
@@ -446,7 +447,7 @@ const MusicPageContent = () => {
                             <div className="text-center mt-8 bg-black/20 p-6 rounded-3xl backdrop-blur-sm border border-white/5 max-w-[280px]">
                                 <Music className="w-12 h-12 text-white/20 mx-auto mb-4" />
                                 <p className="text-white/60 font-medium">בחר שיר כדי להתחיל לנגן</p>
-                                <p className="text-white/30 text-sm mt-1">האלבומים שלך מופיעים מצד שמאל</p>
+                                <p className="text-white/30 text-sm mt-1">האלבומים שלך מופיעים מצד ימין</p>
                             </div>
                         )}
                     </div>

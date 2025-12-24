@@ -171,6 +171,7 @@ CREATE TABLE IF NOT EXISTS rantunes_songs (
     duration_seconds INTEGER,
     file_path TEXT NOT NULL, -- Spotify URI or streamable path
     file_name TEXT,
+    preview_url TEXT,
     business_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(file_path, business_id)

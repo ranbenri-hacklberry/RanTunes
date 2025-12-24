@@ -131,16 +131,28 @@ export const MusicProvider = ({ children }) => {
             const isSpotifyTrack = song.file_path?.startsWith('spotify:');
 
             if (isSpotifyTrack) {
-                // If Spotify track, use Spotify API (remote control)
-                try {
-                    const SpotifyService = (await import('@/lib/spotifyService')).default;
-                    await SpotifyService.play({ uris: [song.file_path] });
-                    // We can't track duration/currentTime easily without SDK, so we'll just mock it or assume it's playing
-                    setIsPlaying(true);
-                } catch (err) {
-                    console.error('Spotify playback failed:', err);
-                    // Fallback or error message
+                // TRY to play via browser audio tag if preview_url exists
+                if (song.preview_url) {
+                    audioRef.current.src = song.preview_url;
+                    audioRef.current.load();
+                    try {
+                        await audioRef.current.play();
+                    } catch (e) {
+                        console.warn('Browser playback blocked, trying Spotify Remote...', e);
+                        // Fallback to remote control
+                        const SpotifyService = (await import('@/lib/spotifyService')).default;
+                        await SpotifyService.play({ uris: [song.file_path] });
+                    }
+                } else {
+                    // No preview URL, must use Remote Control
+                    try {
+                        const SpotifyService = (await import('@/lib/spotifyService')).default;
+                        await SpotifyService.play({ uris: [song.file_path] });
+                    } catch (err) {
+                        console.error('Spotify execution failed:', err);
+                    }
                 }
+                setIsPlaying(true);
             } else {
                 // Regular track - build audio URL
                 let audioUrl;
