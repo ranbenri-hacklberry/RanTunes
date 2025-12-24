@@ -3,7 +3,7 @@ import { Play, Pause, SkipBack, ThumbsUp, ThumbsDown, Music } from 'lucide-react
 import { useMusic } from '@/context/MusicContext';
 
 /**
- * Mini music player for headers (KDS, Music, etc.)
+ * Mini music player for headers - RanTunes Dark Version
  */
 const MiniMusicPlayer = () => {
     const {
@@ -11,7 +11,9 @@ const MiniMusicPlayer = () => {
         isPlaying,
         togglePlay,
         handleNext,
-        rateSong
+        rateSong,
+        currentTime,
+        duration
     } = useMusic();
 
     if (!currentSong) return null;
@@ -25,75 +27,88 @@ const MiniMusicPlayer = () => {
         await rateSong(currentSong.id, finalRating);
     };
 
+    // Calculate progress percentage
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
     return (
-        <div className="flex items-center gap-4 px-4 py-1.5 bg-slate-50 rounded-2xl border border-slate-200 ml-4 max-w-[400px]">
-            {/* Song Info */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm border border-purple-200/50">
-                    {currentSong.album?.cover_url ? (
-                        <img 
-                            src={currentSong.album.cover_url} 
-                            alt={currentSong.title}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <Music size={16} className="text-purple-600" />
-                    )}
+        <div className="flex flex-col gap-1 min-w-[300px] max-w-[450px]">
+            <div className="flex items-center gap-4 px-4 py-2 music-glass rounded-2xl border border-white/10">
+                {/* Song Info */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm border border-white/10">
+                        {currentSong.album?.cover_url ? (
+                            <img
+                                src={currentSong.album.cover_url}
+                                alt={currentSong.title}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <Music size={18} className="text-purple-400" />
+                        )}
+                    </div>
+                    <div className="min-w-0" dir="rtl">
+                        <p className="text-sm font-bold text-white truncate leading-tight">
+                            {currentSong.title}
+                        </p>
+                        <p className="text-[11px] font-medium text-white/50 truncate leading-tight">
+                            {currentSong.artist?.name || 'אמן לא ידוע'}
+                        </p>
+                    </div>
                 </div>
-                <div className="min-w-0" dir="rtl">
-                    <p className="text-sm font-bold text-slate-800 truncate leading-tight">
-                        {currentSong.title}
-                    </p>
-                    <p className="text-[11px] font-medium text-slate-500 truncate leading-tight">
-                        {currentSong.artist?.name || 'אמן לא ידוע'}
-                    </p>
+
+                {/* Controls */}
+                <div className="flex items-center gap-1 border-r border-white/10 pr-3 mr-1">
+                    {/* Dislike */}
+                    <button
+                        onClick={() => handleRate(1)}
+                        className={`p-2 rounded-lg transition-all ${isDisliked
+                                ? 'bg-red-500/20 text-red-400 shadow-sm'
+                                : 'text-white/40 hover:bg-white/10 hover:text-white'
+                            }`}
+                        title="לא אהבתי"
+                    >
+                        <ThumbsDown size={16} fill={isDisliked ? 'currentColor' : 'none'} />
+                    </button>
+
+                    {/* Like */}
+                    <button
+                        onClick={() => handleRate(5)}
+                        className={`p-2 rounded-lg transition-all ${isLiked
+                                ? 'bg-green-500/20 text-green-400 shadow-sm'
+                                : 'text-white/40 hover:bg-white/10 hover:text-white'
+                            }`}
+                        title="אהבתי"
+                    >
+                        <ThumbsUp size={16} fill={isLiked ? 'currentColor' : 'none'} />
+                    </button>
+
+                    {/* Play/Pause */}
+                    <button
+                        onClick={togglePlay}
+                        className="p-2 w-10 h-10 rounded-full bg-white text-black hover:bg-white/90 transition-all flex items-center justify-center shadow-lg mx-1"
+                    >
+                        {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
+                    </button>
+
+                    {/* Next */}
+                    <button
+                        onClick={handleNext}
+                        className="p-2 rounded-lg text-white/40 hover:bg-white/10 hover:text-white transition-all"
+                        title="הבא"
+                    >
+                        <SkipBack size={18} />
+                    </button>
                 </div>
             </div>
 
-            {/* Controls */}
-            <div className="flex items-center gap-1 border-r border-slate-200 pr-3 mr-1">
-                {/* Dislike */}
-                <button
-                    onClick={() => handleRate(1)}
-                    className={`p-2 rounded-lg transition-all ${
-                        isDisliked 
-                        ? 'bg-red-100 text-red-600 shadow-sm' 
-                        : 'text-slate-400 hover:bg-slate-200 hover:text-slate-600'
-                    }`}
-                    title="לא אהבתי"
-                >
-                    <ThumbsDown size={16} fill={isDisliked ? 'currentColor' : 'none'} />
-                </button>
-
-                {/* Like */}
-                <button
-                    onClick={() => handleRate(5)}
-                    className={`p-2 rounded-lg transition-all ${
-                        isLiked 
-                        ? 'bg-green-100 text-green-600 shadow-sm' 
-                        : 'text-slate-400 hover:bg-slate-200 hover:text-slate-600'
-                    }`}
-                    title="אהבתי"
-                >
-                    <ThumbsUp size={16} fill={isLiked ? 'currentColor' : 'none'} />
-                </button>
-
-                {/* Play/Pause */}
-                <button
-                    onClick={togglePlay}
-                    className="p-2 w-9 h-9 rounded-full bg-slate-900 text-white hover:bg-slate-800 transition-all flex items-center justify-center shadow-sm mx-1"
-                >
-                    {isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
-                </button>
-
-                {/* Next (Pointing Left for RTL) */}
-                <button
-                    onClick={handleNext}
-                    className="p-2 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all"
-                    title="הבא"
-                >
-                    <SkipBack size={16} />
-                </button>
+            {/* Progress Bar */}
+            <div className="px-2">
+                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div
+                        className="h-full bg-purple-500 transition-all duration-300 ease-linear"
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
             </div>
         </div>
     );

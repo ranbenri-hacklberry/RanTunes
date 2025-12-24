@@ -127,22 +127,38 @@ export const MusicProvider = ({ children }) => {
         setIsLoading(true);
 
         try {
-            // Build audio URL
-            let audioUrl;
-            if (song.isLocalDeviceFile && song.file_blob_url) {
-                audioUrl = song.file_blob_url;
+            // Detect if it's a Spotify track
+            const isSpotifyTrack = song.file_path?.startsWith('spotify:');
+
+            if (isSpotifyTrack) {
+                // If Spotify track, use Spotify API (remote control)
+                try {
+                    const SpotifyService = (await import('@/lib/spotifyService')).default;
+                    await SpotifyService.play({ uris: [song.file_path] });
+                    // We can't track duration/currentTime easily without SDK, so we'll just mock it or assume it's playing
+                    setIsPlaying(true);
+                } catch (err) {
+                    console.error('Spotify playback failed:', err);
+                    // Fallback or error message
+                }
             } else {
-                audioUrl = `${MUSIC_API_URL}/music/stream?path=${encodeURIComponent(song.file_path)}`;
-            }
+                // Regular track - build audio URL
+                let audioUrl;
+                if (song.isLocalDeviceFile && song.file_blob_url) {
+                    audioUrl = song.file_blob_url;
+                } else {
+                    audioUrl = `${MUSIC_API_URL}/music/stream?path=${encodeURIComponent(song.file_path)}`;
+                }
 
-            audioRef.current.src = audioUrl;
-            audioRef.current.load();
+                audioRef.current.src = audioUrl;
+                audioRef.current.load();
 
-            try {
-                await audioRef.current.play();
-            } catch (playError) {
-                console.error('Audio play failed:', playError);
-                throw new Error('Failed to play audio. The file may not be available.');
+                try {
+                    await audioRef.current.play();
+                } catch (playError) {
+                    console.error('Audio play failed:', playError);
+                    throw new Error('Failed to play audio. The file may not be available.');
+                }
             }
 
             setCurrentSong(song);
@@ -308,21 +324,17 @@ export const MusicProvider = ({ children }) => {
         }
 
         try {
-            const response = await fetch(`${MUSIC_API_URL}/music/rate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    songId,
-                    employeeId: currentUser.id,
-                    businessId: currentUser.business_id || null,
-                    rating
-                })
-            });
+            // Use Supabase directly to save rating
+            const { error } = await supabase
+                .from('rantunes_ratings')
+                .upsert({
+                    song_id: songId,
+                    user_id: currentUser.id,
+                    rating: rating,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id, song_id' });
 
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok || !result?.success) {
-                throw new Error(result?.message || 'Failed to rate song');
-            }
+            if (error) throw error;
 
             // Update current playlist and current song with the new rating
             setPlaylist(prev => prev.map(s => s.id === songId ? { ...s, myRating: rating } : s));

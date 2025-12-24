@@ -23,10 +23,10 @@ export const useAlbums = () => {
         try {
             setIsLoading(true);
             const { data, error } = await supabase
-                .from('music_albums')
+                .from('rantunes_albums')
                 .select(`
                     *,
-                    artist:music_artists(id, name)
+                    artist:rantunes_artists(id, name)
                 `)
                 .order('name');
 
@@ -46,7 +46,7 @@ export const useAlbums = () => {
     const fetchArtists = useCallback(async () => {
         try {
             const { data, error } = await supabase
-                .from('music_artists')
+                .from('rantunes_artists')
                 .select('*')
                 .order('name');
 
@@ -63,7 +63,7 @@ export const useAlbums = () => {
     const fetchPlaylists = useCallback(async () => {
         try {
             const { data, error } = await supabase
-                .from('music_playlists')
+                .from('rantunes_playlists')
                 .select('*')
                 .order('name');
 
@@ -80,11 +80,11 @@ export const useAlbums = () => {
     const fetchAlbumSongs = useCallback(async (albumId) => {
         try {
             const { data, error } = await supabase
-                .from('music_songs')
+                .from('rantunes_songs')
                 .select(`
                     *,
-                    album:music_albums(id, name, cover_url),
-                    artist:music_artists(id, name)
+                    album:rantunes_albums(id, name, cover_url),
+                    artist:rantunes_artists(id, name)
                 `)
                 .eq('album_id', albumId)
                 .order('track_number');
@@ -101,13 +101,13 @@ export const useAlbums = () => {
     const fetchPlaylistSongs = useCallback(async (playlistId) => {
         try {
             const { data, error } = await supabase
-                .from('music_playlist_songs')
+                .from('rantunes_playlist_songs')
                 .select(`
                     *,
-                    song:music_songs(
+                    song:rantunes_songs(
                         *,
-                        album:music_albums(id, name, cover_url),
-                        artist:music_artists(id, name)
+                        album:rantunes_albums(id, name, cover_url),
+                        artist:rantunes_artists(id, name)
                     )
                 `)
                 .eq('playlist_id', playlistId)
@@ -126,13 +126,13 @@ export const useAlbums = () => {
         if (!currentUser?.id) return [];
         try {
             const { data, error } = await supabase
-                .from('music_ratings')
+                .from('rantunes_ratings')
                 .select(`
                     *,
-                    song:music_songs(
+                    song:rantunes_songs(
                         *,
-                        album:music_albums(id, name, cover_url),
-                        artist:music_artists(id, name)
+                        album:rantunes_albums(id, name, cover_url),
+                        artist:rantunes_artists(id, name)
                     )
                 `)
                 .eq('employee_id', currentUser.id)
@@ -155,7 +155,7 @@ export const useAlbums = () => {
             // 1. Ensure artist exists
             const artistName = spotifyAlbum.artists?.[0]?.name || 'אמן לא ידוע';
             const { data: artistData, error: artistError } = await supabase
-                .from('music_artists')
+                .from('rantunes_artists')
                 .upsert({
                     name: artistName,
                     business_id: businessId,
@@ -168,7 +168,7 @@ export const useAlbums = () => {
 
             // 2. Create album record
             const { data: albumData, error: albumError } = await supabase
-                .from('music_albums')
+                .from('rantunes_albums')
                 .upsert({
                     name: spotifyAlbum.name,
                     artist_id: artistData.id,
@@ -197,7 +197,7 @@ export const useAlbums = () => {
         try {
             setIsLoading(true);
             const { error } = await supabase
-                .from('music_albums')
+                .from('rantunes_albums')
                 .delete()
                 .match({ folder_path: `spotify:album:${spotifyAlbumId}` });
 
@@ -217,7 +217,7 @@ export const useAlbums = () => {
     const addSongToPlaylist = useCallback(async (playlistId, songId) => {
         try {
             const { data: existing } = await supabase
-                .from('music_playlist_songs')
+                .from('rantunes_playlist_songs')
                 .select('position')
                 .eq('playlist_id', playlistId)
                 .order('position', { ascending: false })
@@ -226,7 +226,7 @@ export const useAlbums = () => {
             const nextPosition = (existing?.[0]?.position || 0) + 1;
 
             const { error } = await supabase
-                .from('music_playlist_songs')
+                .from('rantunes_playlist_songs')
                 .insert({
                     playlist_id: playlistId,
                     song_id: songId,
@@ -245,7 +245,7 @@ export const useAlbums = () => {
     const removePlaylistSong = useCallback(async (playlistId, songId) => {
         try {
             const { error } = await supabase
-                .from('music_playlist_songs')
+                .from('rantunes_playlist_songs')
                 .delete()
                 .match({ playlist_id: playlistId, song_id: songId });
 
@@ -261,7 +261,7 @@ export const useAlbums = () => {
     const deletePlaylist = useCallback(async (playlistId) => {
         try {
             const { error } = await supabase
-                .from('music_playlists')
+                .from('rantunes_playlists')
                 .delete()
                 .eq('id', playlistId);
 
@@ -280,14 +280,14 @@ export const useAlbums = () => {
         try {
             // Get top rated songs
             const { data: ratings, error } = await supabase
-                .from('music_ratings')
+                .from('rantunes_ratings')
                 .select(`
                     song_id,
                     rating,
-                    song:music_songs(
+                    song:rantunes_songs(
                         *,
-                        album:music_albums(id, name, cover_url),
-                        artist:music_artists(id, name)
+                        album:rantunes_albums(id, name, cover_url),
+                        artist:rantunes_artists(id, name)
                     )
                 `)
                 .eq('employee_id', currentUser.id)

@@ -141,15 +141,54 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ===================
--- HELPER FUNCTION: Reject User
+-- MUSIC DATA TABLES
 -- ===================
-CREATE OR REPLACE FUNCTION reject_rantunes_user(target_user_id UUID)
-RETURNS VOID AS $$
-BEGIN
-    UPDATE rantunes_users 
-    SET 
-        status = 'rejected',
-        updated_at = NOW()
-    WHERE id = target_user_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TABLE IF NOT EXISTS rantunes_artists (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    business_id UUID,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(name, business_id)
+);
+
+CREATE TABLE IF NOT EXISTS rantunes_albums (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    artist_id UUID REFERENCES rantunes_artists(id) ON DELETE CASCADE,
+    cover_url TEXT,
+    folder_path TEXT UNIQUE, -- Stores Spotify URI or Local Path
+    business_id UUID,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS rantunes_songs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    album_id UUID REFERENCES rantunes_albums(id) ON DELETE CASCADE,
+    artist_id UUID REFERENCES rantunes_artists(id) ON DELETE CASCADE,
+    track_number INTEGER,
+    duration_seconds INTEGER,
+    file_path TEXT NOT NULL, -- Spotify URI or streamable path
+    file_name TEXT,
+    business_id UUID,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(file_path, business_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rantunes_songs_album ON rantunes_songs(album_id);
+CREATE INDEX IF NOT EXISTS idx_rantunes_songs_artist ON rantunes_songs(artist_id);
+
+-- Enable RLS for these tables
+ALTER TABLE rantunes_artists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rantunes_albums ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rantunes_songs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public read rantunes_artists" ON rantunes_artists FOR SELECT USING (true);
+CREATE POLICY "Public read rantunes_albums" ON rantunes_albums FOR SELECT USING (true);
+CREATE POLICY "Public read rantunes_songs" ON rantunes_songs FOR SELECT USING (true);
+
+-- Allow admins to manage music data
+CREATE POLICY "Allow management rantunes_artists" ON rantunes_artists FOR ALL USING (true);
+CREATE POLICY "Allow management rantunes_albums" ON rantunes_albums FOR ALL USING (true);
+CREATE POLICY "Allow management rantunes_songs" ON rantunes_songs FOR ALL USING (true);

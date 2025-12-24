@@ -14,6 +14,7 @@ import VinylTurntable from '@/components/VinylTurntable';
 import SongRow from '@/components/SongRow';
 import MiniMusicPlayer from '@/components/MiniMusicPlayer';
 import ConnectionStatusBar from '@/components/ConnectionStatusBar';
+import MusicPlayer from '@/components/MusicPlayer';
 import AlbumView from './components/AlbumView';
 import PlaylistBuilder from './components/PlaylistBuilder';
 import DirectoryScanner from './components/DirectoryScanner';
@@ -294,7 +295,7 @@ const MusicPageContent = () => {
             }));
 
             if (songInserts.length > 0) {
-                const { error } = await supabase.from('music_songs').upsert(songInserts, { onConflict: 'file_path, business_id' });
+                const { error } = await supabase.from('rantunes_songs').upsert(songInserts, { onConflict: 'file_path, business_id' });
                 if (error) console.error('Error saving Spotify tracks:', error);
             }
 
@@ -320,7 +321,7 @@ const MusicPageContent = () => {
     const displaySongs = currentAlbumSongs.length > 0 ? currentAlbumSongs : playlist;
 
     return (
-        <div className="min-h-screen music-gradient-dark flex flex-col" dir="rtl">
+        <div className="h-screen flex flex-col music-gradient-dark overflow-hidden" dir="rtl">
             {/* Clean Header */}
             <header className="flex items-center justify-between p-4 border-b border-white/10 bg-black/20 backdrop-blur-md z-10">
                 <div className="flex items-center gap-3">
