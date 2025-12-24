@@ -629,17 +629,60 @@ const MusicPageContent = () => {
                                         )}
 
                                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {/* Special "Add Album" Card - Always first */}
+                                            {/* Local Device "Upload" Card */}
                                             <motion.div
                                                 whileHover={{ scale: 1.02 }}
-                                                onClick={() => musicSource === 'spotify' ? setShowSpotifySearch(true) : setShowScanner(true)}
-                                                className="music-album-card group bg-white/5 border-2 border-dashed border-white/20 flex flex-col items-center justify-center text-center p-4 hover:border-purple-500/50 transition-all cursor-pointer min-h-[200px] rounded-2xl"
+                                                className="music-album-card group bg-green-500/5 border-2 border-dashed border-green-500/20 flex flex-col items-center justify-center text-center p-4 hover:border-green-500/50 transition-all cursor-pointer min-h-[200px] rounded-2xl"
+                                                onClick={() => document.getElementById('local-file-input').click()}
                                             >
-                                                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                                    <Upload className="w-6 h-6 text-white/50" />
+                                                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                    <Upload className="w-6 h-6 text-green-500/70" />
                                                 </div>
-                                                <h3 className="text-white font-bold">הוסף אלבום</h3>
-                                                <p className="text-white/40 text-xs">סרוק תיקייה או חפש</p>
+                                                <h3 className="text-white font-bold">קבצים מהמכשיר</h3>
+                                                <p className="text-white/40 text-xs text-center">בחר שירים מהטלפון</p>
+                                                <input
+                                                    id="local-file-input"
+                                                    type="file"
+                                                    multiple
+                                                    accept="audio/*"
+                                                    className="hidden"
+                                                    onChange={async (e) => {
+                                                        const files = Array.from(e.target.files);
+                                                        if (files.length === 0) return;
+
+                                                        const newLocalSongs = files.map((file, idx) => ({
+                                                            id: `local-${Date.now()}-${idx}`,
+                                                            title: file.name.replace(/\.[^/.]+$/, ""),
+                                                            artist: { name: 'Local File' },
+                                                            duration_seconds: 0,
+                                                            isLocalDeviceFile: true,
+                                                            file_blob_url: URL.createObjectURL(file)
+                                                        }));
+
+                                                        // Add these as a temporary "Album" or just play them
+                                                        setSelectedAlbum({
+                                                            id: 'local-session',
+                                                            name: 'קבצים מהמכשיר',
+                                                            artist: { name: 'טעינה מקומית' },
+                                                            isLocalDeviceSession: true,
+                                                            isPlaylist: false // Treat as a session, not a playlist that needs replacement
+                                                        });
+                                                        setCurrentAlbumSongs(newLocalSongs);
+                                                    }}
+                                                />
+                                            </motion.div>
+
+                                            {/* Special "Spotify Search" Card */}
+                                            <motion.div
+                                                whileHover={{ scale: 1.02 }}
+                                                onClick={() => setShowSpotifySearch(true)}
+                                                className="music-album-card group bg-purple-500/5 border-2 border-dashed border-purple-500/20 flex flex-col items-center justify-center text-center p-4 hover:border-purple-500/50 transition-all cursor-pointer min-h-[200px] rounded-2xl"
+                                            >
+                                                <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                    <Search className="w-6 h-6 text-purple-500/70" />
+                                                </div>
+                                                <h3 className="text-white font-bold">חיפוש ב-Spotify</h3>
+                                                <p className="text-white/40 text-xs">הוסף מוזיקה מהענן</p>
                                             </motion.div>
 
                                             {isLoading && albums.length === 0 ? (

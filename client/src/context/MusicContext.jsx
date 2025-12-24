@@ -128,7 +128,12 @@ export const MusicProvider = ({ children }) => {
 
         try {
             // Build audio URL
-            const audioUrl = `${MUSIC_API_URL}/music/stream?path=${encodeURIComponent(song.file_path)}`;
+            let audioUrl;
+            if (song.isLocalDeviceFile && song.file_blob_url) {
+                audioUrl = song.file_blob_url;
+            } else {
+                audioUrl = `${MUSIC_API_URL}/music/stream?path=${encodeURIComponent(song.file_path)}`;
+            }
 
             audioRef.current.src = audioUrl;
             audioRef.current.load();
@@ -269,7 +274,7 @@ export const MusicProvider = ({ children }) => {
                 if (repeat === 'all') prevIndex = playlist.length - 1;
                 else {
                     // Start of playlist reached and it's disliked
-                    prevIndex = 0; 
+                    prevIndex = 0;
                     // If even the first one is disliked, we stop or find first playable
                     if (isDislikedSong(playlist[0])) {
                         let firstPlayable = playlist.findIndex(s => !isDislikedSong(s));
@@ -323,7 +328,7 @@ export const MusicProvider = ({ children }) => {
             setPlaylist(prev => prev.map(s => s.id === songId ? { ...s, myRating: rating } : s));
             if (currentSong?.id === songId) {
                 setCurrentSong(prev => ({ ...prev, myRating: rating }));
-                
+
                 // If the current song was just disliked, skip to next
                 if (rating === 1) {
                     console.log('🎵 rateSong: current song disliked, skipping...');

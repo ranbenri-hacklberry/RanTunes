@@ -3,7 +3,7 @@ import { ArrowRight, Play, Clock, Music } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMusic } from '@/context/MusicContext';
 import { useAlbums } from '@/hooks/useAlbums';
-import SongRow from '@/components/music/SongRow';
+import SongRow from '@/components/SongRow';
 import '@/styles/music.css';
 
 const MUSIC_API_URL = import.meta.env.VITE_MUSIC_API_URL ||
