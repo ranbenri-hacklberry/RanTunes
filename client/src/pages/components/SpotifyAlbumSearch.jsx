@@ -42,6 +42,7 @@ export default function SpotifyAlbumSearch({ onClose, onAddAlbum, onRemoveAlbum,
     const [results, setResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [recentSearches, setRecentSearches] = useState([]);
+    const [addingAlbumId, setAddingAlbumId] = useState(null);
 
     // Debounced search query for live search
     const debouncedQuery = useDebounce(searchQuery, 400);
@@ -92,12 +93,26 @@ export default function SpotifyAlbumSearch({ onClose, onAddAlbum, onRemoveAlbum,
     };
 
     // Toggle album selection
-    const handleAlbumClick = (album) => {
+    const handleAlbumClick = async (album) => {
+        if (addingAlbumId) return; // Prevent double-click
+
+        console.log('🎵 Album clicked:', album.name, album.id);
         const isAdded = userAlbumIds.includes(album.id);
+
         if (isAdded) {
+            console.log('🗑️ Removing album...');
             onRemoveAlbum?.(album.id);
         } else {
-            onAddAlbum?.(album);
+            console.log('➕ Adding album...');
+            setAddingAlbumId(album.id);
+            try {
+                await onAddAlbum?.(album);
+                console.log('✅ Album added successfully');
+            } catch (err) {
+                console.error('❌ Error adding album:', err);
+            } finally {
+                setAddingAlbumId(null);
+            }
         }
     };
 
@@ -250,13 +265,17 @@ export default function SpotifyAlbumSearch({ onClose, onAddAlbum, onRemoveAlbum,
                                             )}
                                         </div>
 
-                                        {/* Overlay - different for added vs not added */}
+                                        {/* Overlay - different for added vs not added vs loading */}
                                         <div className={`absolute inset-0 flex items-center justify-center transition-opacity
-                                            ${added
-                                                ? 'bg-green-600/80'
-                                                : 'bg-black/60 opacity-0 group-hover:opacity-100'}`}
+                                            ${addingAlbumId === album.id
+                                                ? 'bg-purple-600/80 opacity-100'
+                                                : added
+                                                    ? 'bg-green-600/80'
+                                                    : 'bg-black/60 opacity-0 group-hover:opacity-100'}`}
                                         >
-                                            {added ? (
+                                            {addingAlbumId === album.id ? (
+                                                <Loader2 className="w-10 h-10 text-white animate-spin" />
+                                            ) : added ? (
                                                 <div className="flex flex-col items-center">
                                                     <Check className="w-8 h-8 text-white mb-1" />
                                                     <span className="text-white/80 text-xs">לחץ להסרה</span>
