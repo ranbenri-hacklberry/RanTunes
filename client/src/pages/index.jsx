@@ -305,13 +305,38 @@ const MusicPageContent = () => {
                     </button>
 
                     <button
-                        onClick={() => {
-                            if (musicSource === 'spotify') SpotifyService.logout();
+                        onClick={async () => {
+                            const choice = window.confirm(
+                                '🔄 איפוס מלא?\n\n' +
+                                'לחץ OK למחיקת כל האלבומים והתנתקות מ-Spotify\n' +
+                                'לחץ Cancel רק להתנתקות (בלי למחוק אלבומים)'
+                            );
+
+                            // Clear Spotify tokens
+                            SpotifyService.logout();
                             localStorage.removeItem('music_source');
                             localStorage.removeItem('rantunes_user');
+                            localStorage.removeItem('spotify_access_token');
+                            localStorage.removeItem('spotify_refresh_token');
+                            localStorage.removeItem('spotify_token_expiry');
+
+                            if (choice) {
+                                // Full reset - delete all albums, songs, artists
+                                try {
+                                    console.log('🧹 Cleaning database...');
+                                    await supabase.from('rantunes_songs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                                    await supabase.from('rantunes_albums').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                                    await supabase.from('rantunes_artists').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                                    console.log('✅ Database cleaned');
+                                } catch (err) {
+                                    console.error('Error cleaning database:', err);
+                                }
+                            }
+
                             window.location.reload();
                         }}
                         className="w-10 h-10 rounded-xl music-glass flex items-center justify-center text-white hover:text-red-400 transition-colors"
+                        title="איפוס והתנתקות"
                     >
                         <LogOut className="w-5 h-5" />
                     </button>
