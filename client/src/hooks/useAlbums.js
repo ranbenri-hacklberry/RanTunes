@@ -181,6 +181,41 @@ export const useAlbums = () => {
 
             if (albumError) throw albumError;
 
+            // 3. Fetch and save album tracks from Spotify
+            try {
+                const { getAlbumTracks } = await import('@/lib/spotifyService');
+                const tracksResponse = await getAlbumTracks(spotifyAlbum.id);
+                const tracks = tracksResponse?.items || [];
+
+                if (tracks.length > 0) {
+                    const songsToInsert = tracks.map((track, index) => ({
+                        title: track.name,
+                        album_id: albumData.id,
+                        artist_id: artistData.id,
+                        track_number: track.track_number || index + 1,
+                        duration_seconds: Math.round((track.duration_ms || 0) / 1000),
+                        file_path: track.uri, // spotify:track:xxx
+                        file_name: track.name,
+                        preview_url: track.preview_url,
+                        business_id: businessId
+                    }));
+
+                    // Upsert songs (ignore conflicts on file_path)
+                    const { error: songsError } = await supabase
+                        .from('rantunes_songs')
+                        .upsert(songsToInsert, { onConflict: 'file_path, business_id' });
+
+                    if (songsError) {
+                        console.error('Error saving tracks:', songsError);
+                    } else {
+                        console.log(`✅ Added ${tracks.length} tracks for album: ${spotifyAlbum.name}`);
+                    }
+                }
+            } catch (trackError) {
+                console.error('Error fetching/saving tracks:', trackError);
+                // Don't throw - album was still created successfully
+            }
+
             await fetchAlbums();
             return albumData;
         } catch (err) {
@@ -306,19 +341,31 @@ export const useAlbums = () => {
     // Refresh all data
     const refreshAll = useCallback(async () => {
         setIsLoading(true);
+        const albumsResult = await fetchAlbums();
         await Promise.all([
-            fetchAlbums(),
             fetchArtists(),
             fetchPlaylists()
         ]);
+        // Consider connected if we have any albums
+        setIsMusicDriveConnected(albumsResult.length > 0);
         setIsLoading(false);
     }, [fetchAlbums, fetchArtists, fetchPlaylists]);
 
-    // Check music drive - for RanTunes standalone, always return false (we use Spotify)
+    // Check music drive - for RanTunes, we consider "connected" if we have albums from Supabase
     const checkMusicDriveConnection = useCallback(async () => {
-        // RanTunes doesn't use local drive
-        setIsMusicDriveConnected(false);
-        return false;
+        try {
+            const { data, error } = await supabase
+                .from('rantunes_albums')
+                .select('id')
+                .limit(1);
+
+            const connected = !error && data !== null;
+            setIsMusicDriveConnected(connected);
+            return connected;
+        } catch {
+            setIsMusicDriveConnected(false);
+            return false;
+        }
     }, []);
 
     // Scan music directory - stub for RanTunes (not needed)
