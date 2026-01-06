@@ -167,20 +167,37 @@ export const MusicProvider = ({ children }) => {
                     pauseLocal();
 
                     if (sdk.isReady && sdk.deviceId) {
-                        // Optimistic UI update
+                        // Best case: Use Web Playback SDK
                         setIsPlaying(true);
                         await sdk.play(song.file_path, 0, allSpotifyUris);
                         console.log('🎵 [MusicContext] sdk.play called successfully');
                     } else if (song.preview_url) {
+                        // Fallback: Play 30-second preview
                         setIsPlaying(true);
                         await playLocalPath(song.preview_url, true);
-                        showToast('מנגן תצוגה מקדימה (Spotify SDK לא זמין)', 'info');
+                        showToast('מנגן תצוגה מקדימה (Spotify SDK עדיין נטען)', 'info');
                     } else {
-                        const service = await import('@/lib/spotifyService');
-                        const SpotifyService = service.default || service;
-                        await SpotifyService.play({ uris: [song.file_path] });
-                        setIsPlaying(true);
-                        showToast('מנגן דרך Spotify Connect', 'info');
+                        // Try to play on any active Spotify device (phone, desktop app, etc.)
+                        try {
+                            const service = await import('@/lib/spotifyService');
+                            const SpotifyService = service.default || service;
+
+                            // First check if there are any active devices
+                            const devices = await SpotifyService.getDevices?.();
+                            if (devices && devices.length > 0) {
+                                const activeDevice = devices.find(d => d.is_active) || devices[0];
+                                await SpotifyService.play({ uris: [song.file_path], device_id: activeDevice.id });
+                                setIsPlaying(true);
+                                showToast(`מנגן על: ${activeDevice.name}`, 'info');
+                            } else {
+                                // No devices at all - inform user
+                                showToast('נא לפתוח את Spotify באפליקציה אחרת או לחכות לטעינת הנגן', 'error');
+                                setPlaybackError('לא נמצא מכשיר Spotify פעיל');
+                            }
+                        } catch (deviceErr) {
+                            console.warn('🎵 [MusicContext] Device fallback failed:', deviceErr);
+                            showToast('הנגן עדיין נטען, נסה שוב בכמה שניות', 'info');
+                        }
                     }
                 } catch (err) {
                     console.error('🎵 [MusicContext] Spotify play operation failed:', err);
