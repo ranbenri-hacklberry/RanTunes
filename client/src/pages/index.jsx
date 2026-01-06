@@ -155,7 +155,7 @@ const MusicPageContent = () => {
     };
 
     const handlePlaylistClick = async (playlist) => {
-        setSelectedAlbum({ ...playlist, isPlaylist: true, artist: { name: 'פלייליסט חכם' } });
+        setSelectedAlbum({ ...playlist, isPlaylist: true, artist: { name: 'פלייליסט' } });
     };
 
     const handleAlbumPlay = async (album) => {
@@ -169,7 +169,7 @@ const MusicPageContent = () => {
     };
 
     const handlePlaylistPlay = async (playlist) => {
-        setSelectedAlbum({ ...playlist, isPlaylist: true, artist: { name: 'פלייליסט חכם' } });
+        setSelectedAlbum({ ...playlist, isPlaylist: true, artist: { name: 'פלייליסט' } });
         const songs = await fetchPlaylistSongs(playlist.id);
         setCurrentAlbumSongs(songs);
         const playable = (songs || []).filter(s => (s?.myRating || 0) !== 1);
@@ -256,7 +256,7 @@ const MusicPageContent = () => {
                             <Music className="w-6 h-6 text-purple-400" />
                             <h1 className="text-white text-xl font-bold">RanTunes</h1>
                         </div>
-                        <span className="text-white/30 text-xs mr-8">v0.9.6</span>
+                        <span className="text-white/30 text-xs mr-8">v0.9.7</span>
                     </div>
                     <div className="hidden lg:block">
                         <MiniMusicPlayer />
@@ -543,17 +543,24 @@ const MusicPageContent = () => {
                                             <h3 className="text-white font-bold">ייבוא מ-Spotify</h3>
                                         </div>
                                         {filteredPlaylists.filter(p => p && p.id).map(playlist => (
-                                            <div key={playlist.id} className="music-glass rounded-2xl overflow-hidden group relative">
-                                                <div className="aspect-square bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center relative cursor-pointer" onClick={() => handlePlaylistClick(playlist)}>
-                                                    <ListMusic className="w-16 h-16 text-white/30" />
+                                            <div key={playlist.id} className="music-glass rounded-2xl overflow-hidden group relative flex flex-col h-full">
+                                                <div className="aspect-square bg-gradient-to-br from-purple-900/40 to-blue-900/40 flex items-center justify-center relative cursor-pointer" onClick={() => handlePlaylistClick(playlist)}>
+                                                    {playlist.cover_url ? (
+                                                        <img src={playlist.cover_url} alt={playlist.name} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
+                                                    ) : (
+                                                        <ListMusic className="w-16 h-16 text-white/20" />
+                                                    )}
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <button onClick={(e) => { e.stopPropagation(); handlePlaylistPlay(playlist); }} className="w-14 h-14 rounded-full music-gradient-purple flex items-center justify-center shadow-lg"><Play className="w-6 h-6 text-white fill-white" /></button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handlePlaylistPlay(playlist); }} className="w-14 h-14 rounded-full music-gradient-purple flex items-center justify-center shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300"><Play className="w-6 h-6 text-white fill-white" /></button>
                                                     </div>
                                                 </div>
-                                                <div className="p-4">
-                                                    <div className="flex justify-between items-center">
-                                                        <h3 className="text-white font-bold truncate cursor-pointer" onClick={() => handlePlaylistClick(playlist)}>{playlist.name}</h3>
-                                                        <button onClick={(e) => handleDeletePlaylist(e, playlist.id)} className="text-white/30 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                                                <div className="p-4 flex-1 flex flex-col">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div className="min-w-0 flex-1">
+                                                            <h3 className="text-white font-bold truncate cursor-pointer hover:text-purple-400 transition-colors" onClick={() => handlePlaylistClick(playlist)}>{playlist.name}</h3>
+                                                            <p className="text-white/40 text-xs mt-1">פלייליסט</p>
+                                                        </div>
+                                                        <button onClick={(e) => handleDeletePlaylist(e, playlist.id)} className="text-white/20 hover:text-red-400 transition-colors mt-1"><Trash2 className="w-4 h-4" /></button>
                                                     </div>
                                                 </div>
                                             </div>

@@ -100,31 +100,57 @@ export const useAlbums = () => {
     // Fetch songs for a playlist
     const fetchPlaylistSongs = useCallback(async (playlistId) => {
         try {
-            const { data, error } = await supabase
+            // 1. Fetch playlist song records
+            const { data: playlistItems, error: itemsError } = await supabase
                 .from('rantunes_playlist_songs')
-                .select(`
-                    *,
-                    song:rantunes_songs(
-                        *,
-                        album:rantunes_albums(id, name, cover_url),
-                        artist:rantunes_artists(id, name)
-                    )
-                `)
+                .select('*')
                 .eq('playlist_id', playlistId)
                 .order('position');
 
-            if (error) throw error;
-            return (data || []).map(ps => {
-                if (ps.song) return ps.song;
+            if (itemsError) throw itemsError;
+            if (!playlistItems || playlistItems.length === 0) return [];
 
-                // Fallback to metadata stored in playlist_songs if join failed
+            // 2. Get unique song IDs to fetch from main songs table
+            const songIds = [...new Set(playlistItems.map(ps => ps.song_id).filter(id => id && id.length > 5))];
+
+            let songsMap = {};
+            if (songIds.length > 0) {
+                const uuids = songIds.filter(id => id.includes('-'));
+                const uris = songIds.filter(id => id.startsWith('spotify:'));
+
+                let query = supabase
+                    .from('rantunes_songs')
+                    .select('*, album:rantunes_albums(id, name, cover_url), artist:rantunes_artists(id, name)');
+
+                if (uuids.length > 0 && uris.length > 0) {
+                    query = query.or(`id.in.(${uuids.join(',')}),file_path.in.(${uris.map(u => `"${u}"`).join(',')})`);
+                } else if (uuids.length > 0) {
+                    query = query.in('id', uuids);
+                } else if (uris.length > 0) {
+                    query = query.in('file_path', uris);
+                }
+
+                const { data: mainSongs } = await query;
+
+                (mainSongs || []).forEach(s => {
+                    songsMap[s.id] = s;
+                    songsMap[s.file_path] = s;
+                });
+            }
+
+            // 3. Combine data
+            return playlistItems.map(ps => {
+                const mainSong = songsMap[ps.song_id];
+                if (mainSong) return { ...mainSong, myRating: ps.rating };
+
+                // Fallback to metadata stored in playlist_songs
                 return {
-                    id: ps.id, // Use the join record ID
-                    song_id: ps.song_id,
+                    id: ps.song_id,
                     title: ps.song_title || 'Unknown Title',
-                    file_path: ps.song_id, // Assuming it's a Spotify URI if not in DB
+                    file_path: ps.song_id,
                     artist: { name: ps.song_artist || 'Unknown Artist' },
-                    album: { name: '', cover_url: ps.song_cover_url }
+                    album: { name: '', cover_url: ps.song_cover_url },
+                    duration_seconds: 0
                 };
             });
         } catch (err) {
