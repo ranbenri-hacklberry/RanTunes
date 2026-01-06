@@ -490,6 +490,11 @@ export default {
     getAlbum,
     getAlbumTracks,
     search,
+    getAudioFeatures: async (trackId) => {
+        const response = await spotifyFetch(`/audio-features/${trackId}`);
+        if (!response.ok) throw new Error('Failed to get audio features');
+        return response.json();
+    },
     getPlaybackState,
     play,
     pause,

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Play, Pause, SkipForward, SkipBack } from 'lucide-react';
 
-const AnalogAmplifier = ({ isPlaying }) => {
+const AnalogAmplifier = ({ isPlaying, realAmplitude, trackFeatures }) => {
     const [leftNeedle, setLeftNeedle] = useState(-45);
     const [rightNeedle, setRightNeedle] = useState(-45);
 
@@ -9,28 +9,61 @@ const AnalogAmplifier = ({ isPlaying }) => {
         let interval;
         if (isPlaying) {
             interval = setInterval(() => {
-                // Simulate audio levels with "kick" effect
-                const simulateLevel = () => {
-                    const r = Math.random();
-                    const base = -20 + (r * 15); // Hover around -20 to -5
+                let level = -45;
 
-                    // Kick drum simulation (sudden spike every ~500-800ms probability)
-                    const kick = r > 0.85 ? 15 : 0;
+                if (realAmplitude !== null && realAmplitude !== undefined) {
+                    // REAL AUDIO VISUALIZATION (Local/Preview)
+                    const normalized = realAmplitude / 255;
+                    const boosted = Math.min(1, normalized * 1.5);
+                    level = -45 + (boosted * 50);
+                } else {
+                    // SMART SIMULATION (Spotify w/ Audio Features)
+                    if (trackFeatures) {
+                        const { tempo, energy, danceability } = trackFeatures;
 
-                    return Math.min(5, base + kick); // Cap at +5
-                };
+                        // 1. BPM Sync
+                        // Calculate beat interval in ms
+                        const beatInterval = 60000 / tempo;
 
-                setLeftNeedle(simulateLevel());
-                // Right channel slightly offset
-                setRightNeedle(simulateLevel() + (Math.random() * 6 - 3));
-            }, 80); // Faster update rate for smoother/snappier feel
+                        // Check if we are "on beat" (within a 100ms window)
+                        const now = Date.now();
+                        const timeInBeat = now % beatInterval;
+                        const isOnBeat = timeInBeat < 100;
+
+                        // 2. Base Energy Level
+                        // Energy is 0.0 to 1.0. Map to -20 to 0 base.
+                        const baseLevel = -30 + (energy * 20);
+
+                        // 3. Kick Strength
+                        // Danceability controls how "hard" the kick hits
+                        const kickStrength = isOnBeat ? (danceability * 15) : 0;
+
+                        // 4. Jitter
+                        // Random movement based on energy
+                        const jitter = (Math.random() - 0.5) * (energy * 10);
+
+                        level = Math.min(5, baseLevel + kickStrength + jitter);
+                    } else {
+                        // FALLBACK SIMULATION (No Data)
+                        const r = Math.random();
+                        const base = -20 + (r * 15);
+                        const beat = (Date.now() % 1000) < 200 ? 10 : 0;
+                        const jitter = (Math.random() - 0.5) * 5;
+                        level = Math.min(5, base + beat + jitter);
+                    }
+                }
+
+                setLeftNeedle(prev => prev + (level - prev) * 0.3);
+                setRightNeedle(prev => prev + (level - prev + (Math.random() * 4 - 2)) * 0.3);
+
+            }, 40);
         } else {
             setLeftNeedle(-45);
             setRightNeedle(-45);
         }
 
         return () => clearInterval(interval);
-    }, [isPlaying]);
+    }, [isPlaying, realAmplitude, trackFeatures]);
 
     return (
         <div className="analog-amp-container mx-auto relative cursor-default select-none">

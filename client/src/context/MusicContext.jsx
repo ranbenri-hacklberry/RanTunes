@@ -5,6 +5,7 @@ import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAudioAnalyzer } from '@/hooks/useAudioAnalyzer';
 import { MUSIC_API_URL, SKIP_THRESHOLD } from '@/constants/music';
+import SpotifyService from '@/lib/spotifyService';
 
 const MusicContext = createContext(null);
 
@@ -236,6 +237,27 @@ export const MusicProvider = ({ children }) => {
         }
     }, [currentSong, togglePlay, playlist, sdk.isReady, sdk.deviceId, sdk.play, showToast, playLocalPath, pauseLocal]);
 
+    // 7. Spotify Audio Features (Smart Simulation)
+    const [trackFeatures, setTrackFeatures] = useState(null);
+
+    useEffect(() => {
+        const fetchFeatures = async () => {
+            if (currentSong?.file_path?.startsWith('spotify:track:')) {
+                try {
+                    const trackId = currentSong.file_path.split(':')[2];
+                    const features = await SpotifyService.getAudioFeatures(trackId);
+                    setTrackFeatures(features);
+                } catch (e) {
+                    console.warn('Failed to fetch audio features:', e);
+                    setTrackFeatures(null);
+                }
+            } else {
+                setTrackFeatures(null);
+            }
+        };
+        fetchFeatures();
+    }, [currentSong]);
+
     const pause = useCallback(async () => {
         if (currentSong?.file_path?.startsWith('spotify:')) {
             if (sdk.isReady) await sdk.pause();
@@ -380,7 +402,8 @@ export const MusicProvider = ({ children }) => {
         setShuffle, setRepeat, setPlaylist,
         clearError: () => setPlaybackError(null),
         audioRef,
-        currentAmplitude: realAmplitude // Expose to consumers
+        currentAmplitude: realAmplitude, // Expose to consumers
+        trackFeatures
     };
 
     return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;
