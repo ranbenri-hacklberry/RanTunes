@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from './AuthContext';
+import { useRanTunesAuth } from './RanTunesAuthContext';
 import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
 
 const MusicContext = createContext(null);
@@ -11,7 +11,7 @@ const MUSIC_API_URL = import.meta.env.VITE_MUSIC_API_URL ||
     'http://localhost:8080';
 
 export const MusicProvider = ({ children }) => {
-    const { currentUser } = useAuth();
+    const { user: currentUser } = useRanTunesAuth();
     const audioRef = useRef(new Audio());
     const handleNextRef = useRef(() => { });
 
@@ -410,26 +410,32 @@ export const MusicProvider = ({ children }) => {
         }
     }, [currentSong, sdk]);
 
-    // Rate a song (like/dislike only) - use backend service to bypass RLS
+    // Rate a song (like/dislike only)
     const rateSong = useCallback(async (songId, rating) => {
         console.log('🎵 rateSong called:', { songId, rating, currentUser: currentUser?.id });
         if (!currentUser || !songId) {
-            console.log('🎵 rateSong: missing user or songId');
+            console.log('🎵 rateSong: missing user or songId', { hasUser: !!currentUser, hasSongId: !!songId });
             return false;
         }
 
         try {
             // Use Supabase directly to save rating
+            // song_id is TEXT - can be UUID or spotify URI
             const { error } = await supabase
                 .from('rantunes_ratings')
                 .upsert({
-                    song_id: songId,
+                    song_id: String(songId),
                     user_id: currentUser.id,
                     rating: rating,
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'user_id, song_id' });
 
-            if (error) throw error;
+            if (error) {
+                console.error('🎵 rateSong error:', error);
+                throw error;
+            }
+
+            console.log('🎵 rateSong success!');
 
             // Update current playlist and current song with the new rating
             setPlaylist(prev => prev.map(s => s.id === songId ? { ...s, myRating: rating } : s));
