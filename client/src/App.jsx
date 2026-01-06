@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { useRanTunesAuth } from './context/RanTunesAuthContext';
 import AuthScreen from './pages/AuthScreen';
-import MusicPage from './pages/index.jsx';
+
+// Lazy load MusicPage for better performance
+const MusicPage = lazy(() => import('./pages/index.jsx'));
 
 // Check env vars directly to avoid hoisting issues
 const supabaseConfigMissing = !import.meta.env?.VITE_SUPABASE_URL || !import.meta.env?.VITE_SUPABASE_ANON_KEY;
@@ -74,7 +76,15 @@ const App = () => {
     }
 
     // Show music player if authenticated
-    return <MusicPage />;
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen music-gradient-dark flex items-center justify-center">
+                <div className="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
+            </div>
+        }>
+            <MusicPage />
+        </Suspense>
+    );
 };
 
 export default App;

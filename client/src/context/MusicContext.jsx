@@ -2,24 +2,9 @@ import React, { createContext, useContext, useState, useRef, useCallback, useEff
 import { supabase } from '@/lib/supabase';
 import { useRanTunesAuth } from './RanTunesAuthContext';
 import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
-
-/**
- * @typedef {Object} Song
- * @property {string} id - Unique song ID
- * @property {string} title - Song title
- * @property {string} file_path - Path to audio file or Spotify URI
- * @property {string} [preview_url] - Spotify preview URL
- * @property {Object} [artist] - Artist info
- * @property {Object} [album] - Album info
- * @property {number} [myRating] - User's rating (1=dislike, 5=like)
- */
+import { MUSIC_API_URL, SKIP_THRESHOLD, REPEAT_MODES } from '@/constants/music';
 
 const MusicContext = createContext(null);
-
-// Get base URL for music files from backend
-const MUSIC_API_URL = import.meta.env.VITE_MUSIC_API_URL ||
-    import.meta.env.VITE_MANAGER_API_URL?.replace(/\/$/, '') ||
-    'http://localhost:8080';
 
 export const MusicProvider = ({ children }) => {
     const { user: currentUser } = useRanTunesAuth();
@@ -115,8 +100,6 @@ export const MusicProvider = ({ children }) => {
         };
     }, [sdk.currentTrack, sdk.isReady, currentSong?.file_path, playlist]);
 
-    // Skip threshold - if song was played less than 30% before skip, count as dislike
-    const SKIP_THRESHOLD = 0.3;
 
     // Audio event listeners and cleanup
     useEffect(() => {
