@@ -726,3 +726,102 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+/* =====================================================
+   ANALOG AMPLIFIER STYLES (80s Retro)
+   ===================================================== */
+
+.analog-amp-container {
+  width: 100%;
+  max-width: 400px;
+  background: linear-gradient(to bottom, #2b2b2b, #1a1a1a); 
+  border-radius: 4px;
+  padding: 8px; /* The "casing" */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  margin-top: 10px;
+}
+
+.amp-face {
+  background: linear-gradient(to bottom, #eecfa1 0%, #d4af37 50%, #b8860b 100%); /* Brushed Gold */
+  border: 1px solid #8b4513;
+  border-radius: 2px;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+}
+
+/* Screw heads */
+.amp-screw {
+  width: 6px;
+  height: 6px;
+  background: #555;
+  border-radius: 50%;
+  box-shadow: inset 1px 1px 1px rgba(0,0,0,0.5);
+  position: absolute;
+}
+.amp-screw.tl { top: 4px; left: 4px; }
+.amp-screw.tr { top: 4px; right: 4px; }
+.amp-screw.bl { bottom: 4px; left: 4px; }
+.amp-screw.br { bottom: 4px; right: 4px; }
+
+/* VU Meter Window */
+.vu-meter-window {
+  width: 45%;
+  height: 60px;
+  background: #fdf5e6; /* Old paper color */
+  border: 2px solid #333;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.vu-scale {
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 100%;
+  /* Simplified arc scale using border-radius trick or SVG in component */
+}
+
+/* The Needle */
+.vu-needle {
+  position: absolute;
+  bottom: 5px; 
+  left: 50%;
+  width: 2px;
+  height: 85%;
+  background: #d00; /* Red needle */
+  transform-origin: bottom center;
+  transform: rotate(-45deg); /* Start position */
+  transition: transform 0.1s ease-out; /* Smooth but quick movement */
+  z-index: 10;
+}
+
+/* Needle Pivot */
+.vu-pivot {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: #333;
+  border-radius: 50%;
+  z-index: 11;
+}
+
+/* Text labels */
+.vu-label {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: monospace;
+  font-size: 8px;
+  font-weight: bold;
+  color: #333;
+}
