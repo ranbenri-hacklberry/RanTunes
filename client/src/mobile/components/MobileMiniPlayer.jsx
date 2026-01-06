@@ -33,8 +33,8 @@ const MobileMiniPlayer = ({ onExpand }) => {
                     {currentSong.album?.cover_url && (
                         <img
                             src={currentSong.album.cover_url}
-                            alt={currentSong.album.name}
-                            className={`w-full h-full object-cover ${isPlaying ? 'animate-[spin_4s_linear_infinite]' : ''}`} // Maybe no spin here, simple looks better
+                            alt={currentSong.album.name || 'Album Art'}
+                            className={`w-full h-full object-cover ${isPlaying ? 'animate-[spin_4s_linear_infinite]' : ''}`}
                         />
                     )}
                 </div>
@@ -42,10 +42,10 @@ const MobileMiniPlayer = ({ onExpand }) => {
                 {/* Info */}
                 <div className="flex-1 min-w-0 flex flex-col justify-center text-right" dir="rtl">
                     <h4 className="text-white text-sm font-bold truncate leading-tight">
-                        {currentSong.title}
+                        {currentSong.title || 'Unknown Title'}
                     </h4>
                     <p className="text-white/50 text-xs truncate leading-tight">
-                        {currentSong.artist?.name}
+                        {currentSong.artist?.name || 'Unknown Artist'}
                     </p>
                 </div>
 
