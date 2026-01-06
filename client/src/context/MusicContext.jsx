@@ -366,10 +366,8 @@ export const MusicProvider = ({ children }) => {
     }, [pauseLocal, seekLocal]);
 
     // 6. Audio Analysis
-    const { useAudioAnalyzer } = require('@/hooks/useAudioAnalyzer'); // Dynamic require for hook? No, top level import is better. 
-    // Wait, I cannot change imports easily here without a multi-replace or huge view.
-    // I will use a separate replace for imports.
-    // Let's assume I add import at top later.
+
+    // Real Audio Analysis (only active when local/preview is playing)
 
     // Real Audio Analysis (only active when local/preview is playing)
     const realAmplitude = useAudioAnalyzer(audioRef, isLocalPlaying || (isPlaying && currentSong?.preview_url && !sdk.isPlaying));
