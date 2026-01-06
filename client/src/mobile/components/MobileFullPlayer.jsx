@@ -13,11 +13,11 @@ const MobileFullPlayer = ({ onClose }) => {
         handlePrevious,
         currentTime,
         duration,
-        handleSeek,
+        seek,
         shuffle,
-        toggleShuffle,
+        setShuffle,
         repeat,
-        toggleRepeat,
+        setRepeat,
         rateSong
     } = useMusic();
 
@@ -42,7 +42,7 @@ const MobileFullPlayer = ({ onClose }) => {
     };
 
     const handleScrubEnd = () => {
-        handleSeek(scrubValue);
+        seek(scrubValue);
         setIsScrubbing(false);
     };
 
@@ -78,9 +78,10 @@ const MobileFullPlayer = ({ onClose }) => {
                 </div>
                 <div className="relative z-10 w-full aspect-square max-w-sm">
                     <VinylTurntable
-                        currentSong={currentSong}
+                        song={currentSong}
                         isPlaying={isPlaying}
-                        hideInfo={true} // Hide internal info, we show it below
+                        albumArt={currentSong?.album?.cover_url}
+                        hideInfo={true}
                     />
                 </div>
             </div>
@@ -124,7 +125,7 @@ const MobileFullPlayer = ({ onClose }) => {
 
                 {/* Main Controls */}
                 <div className="flex items-center justify-between">
-                    <button onClick={toggleShuffle} className={`${shuffle ? 'text-green-500' : 'text-white/30'}`}>
+                    <button onClick={() => setShuffle(!shuffle)} className={`${shuffle ? 'text-green-500' : 'text-white/30'}`}>
                         <Shuffle size={20} />
                     </button>
 
@@ -145,7 +146,11 @@ const MobileFullPlayer = ({ onClose }) => {
                         </button>
                     </div>
 
-                    <button onClick={toggleRepeat} className={`${repeat !== 'none' ? 'text-green-500' : 'text-white/30'}`}>
+                    <button onClick={() => {
+                        const modes = ['none', 'all', 'one'];
+                        const idx = modes.indexOf(repeat);
+                        setRepeat(modes[(idx + 1) % modes.length]);
+                    }} className={`${repeat !== 'none' ? 'text-green-500' : 'text-white/30'}`}>
                         <Repeat size={20} />
                         {repeat === 'one' && <span className="text-[8px] absolute ml-3 -mt-2">1</span>}
                     </button>
