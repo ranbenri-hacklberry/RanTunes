@@ -37,101 +37,97 @@ export function useSpotifyPlayer() {
         }
 
         window.onSpotifyWebPlaybackSDKReady = async () => {
-            console.log('🎵 [SpotifyPlayer] SDK Ready callback triggered!');
-            const token = await getAccessToken();
-            console.log('🎵 [SpotifyPlayer] Token retrieved:', token ? `${token.substring(0, 20)}...` : 'NULL');
-            if (!token) {
-                console.error('🎵 [SpotifyPlayer] ERROR: No Spotify token available!');
-                setError('No Spotify token available');
-                // Don't initialize player if no token, but keep state valid
-                setPlayer(null);
-                return;
-            }
+            try {
+                console.log('🎵 [SpotifyPlayer] SDK Ready callback triggered!');
+                const token = await getAccessToken();
+                console.log('🎵 [SpotifyPlayer] Token retrieved:', token ? `${token.substring(0, 20)}...` : 'NULL');
 
-            const spotifyPlayer = new window.Spotify.Player({
-                name: 'RanTunes Web Player',
-                getOAuthToken: async cb => {
-                    const freshToken = await getAccessToken();
-                    cb(freshToken);
-                },
-                volume: volume,
-            });
-
-            // Error handling
-            spotifyPlayer.addListener('initialization_error', ({ message }) => {
-                console.error('🎵 [SpotifyPlayer] INITIALIZATION ERROR:', message);
-                setError(message);
-            });
-
-            spotifyPlayer.addListener('authentication_error', ({ message }) => {
-                console.error('🎵 [SpotifyPlayer] AUTHENTICATION ERROR:', message);
-                console.error('🎵 [SpotifyPlayer] This usually means the token is invalid or expired');
-                setError(message);
-            });
-
-            spotifyPlayer.addListener('account_error', ({ message }) => {
-                console.error('🎵 [SpotifyPlayer] ACCOUNT ERROR:', message);
-                console.error('🎵 [SpotifyPlayer] ⚠️ Premium account is REQUIRED for playback!');
-                setError('Premium account required for playback');
-            });
-
-            spotifyPlayer.addListener('playback_error', ({ message }) => {
-                console.error('🎵 [SpotifyPlayer] PLAYBACK ERROR:', message);
-            });
-
-            // Playback status updates
-            spotifyPlayer.addListener('player_state_changed', state => {
-                if (!state) {
-                    console.log('🎵 [SpotifyPlayer] player_state_changed: No state (device not active)');
-                    isActiveDevice.current = false;
+                if (!token) {
+                    console.warn('🎵 [SpotifyPlayer] No Spotify token available - Player will not initialize.');
+                    setError('No Spotify token available');
+                    setPlayer(null);
                     return;
                 }
 
-                console.log('🎵 [SpotifyPlayer] player_state_changed:', {
-                    paused: state.paused,
-                    position: state.position,
-                    duration: state.duration,
-                    track: state.track_window?.current_track?.name,
-                    volume: state.volume
+                const spotifyPlayer = new window.Spotify.Player({
+                    name: 'RanTunes Web Player',
+                    getOAuthToken: async cb => {
+                        try {
+                            const freshToken = await getAccessToken();
+                            if (freshToken) cb(freshToken);
+                        } catch (e) {
+                            console.error('Error refreshing token:', e);
+                        }
+                    },
+                    volume: volume,
                 });
 
-                isActiveDevice.current = true;
-                setCurrentTrack(state.track_window.current_track);
-                setIsPlaying(!state.paused);
-
-                setPosition(state.position);
-                setLastTimestamp(Date.now());
-                setDuration(state.duration);
-            });
-
-            // Ready
-            spotifyPlayer.addListener('ready', ({ device_id }) => {
-                console.log('🎵 RanTunes Player ready with Device ID:', device_id);
-                setDeviceId(device_id);
-                setIsReady(true);
-                isActiveDevice.current = false;
-
-                // Ensure volume is set to audible level
-                spotifyPlayer.setVolume(0.8).then(() => {
-                    console.log('🎵 [SpotifyPlayer] Volume set to 80%');
+                // Error handling
+                spotifyPlayer.addListener('initialization_error', ({ message }) => {
+                    console.warn('🎵 [SpotifyPlayer] INITIALIZATION ERROR:', message);
+                    setError(message);
                 });
-            });
 
-            // Not Ready
-            spotifyPlayer.addListener('not_ready', ({ device_id }) => {
-                console.log('Device ID has gone offline', device_id);
-                setIsReady(false);
-            });
+                spotifyPlayer.addListener('authentication_error', ({ message }) => {
+                    console.warn('🎵 [SpotifyPlayer] AUTHENTICATION ERROR:', message);
+                    setError(message);
+                });
 
-            // Connect to the player
-            console.log('🎵 [SpotifyPlayer] Attempting to connect to Spotify...');
-            const success = await spotifyPlayer.connect();
-            if (success) {
-                console.log('🎵 [SpotifyPlayer] ✅ Successfully connected to Spotify!');
-                playerRef.current = spotifyPlayer;
-                setPlayer(spotifyPlayer);
-            } else {
-                console.error('🎵 [SpotifyPlayer] ❌ Failed to connect to Spotify!');
+                spotifyPlayer.addListener('account_error', ({ message }) => {
+                    console.warn('🎵 [SpotifyPlayer] ACCOUNT ERROR:', message);
+                    setError('Premium account required for playback');
+                });
+
+                spotifyPlayer.addListener('playback_error', ({ message }) => {
+                    console.warn('🎵 [SpotifyPlayer] PLAYBACK ERROR:', message);
+                });
+
+                // Playback status updates
+                spotifyPlayer.addListener('player_state_changed', state => {
+                    if (!state) {
+                        isActiveDevice.current = false;
+                        return;
+                    }
+
+                    isActiveDevice.current = true;
+                    setCurrentTrack(state.track_window.current_track);
+                    setIsPlaying(!state.paused);
+
+                    setPosition(state.position);
+                    setLastTimestamp(Date.now());
+                    setDuration(state.duration);
+                });
+
+                // Ready
+                spotifyPlayer.addListener('ready', ({ device_id }) => {
+                    console.log('🎵 RanTunes Player ready with Device ID:', device_id);
+                    setDeviceId(device_id);
+                    setIsReady(true);
+                    isActiveDevice.current = false;
+
+                    spotifyPlayer.setVolume(0.8).catch(() => { });
+                });
+
+                // Not Ready
+                spotifyPlayer.addListener('not_ready', ({ device_id }) => {
+                    console.log('Device ID has gone offline', device_id);
+                    setIsReady(false);
+                });
+
+                // Connect to the player
+                console.log('🎵 [SpotifyPlayer] Attempting to connect to Spotify...');
+                const success = await spotifyPlayer.connect();
+                if (success) {
+                    console.log('🎵 [SpotifyPlayer] ✅ Successfully connected to Spotify!');
+                    playerRef.current = spotifyPlayer;
+                    setPlayer(spotifyPlayer);
+                } else {
+                    console.warn('🎵 [SpotifyPlayer] ❌ Failed to connect to Spotify!');
+                }
+            } catch (err) {
+                console.error('🎵 [SpotifyPlayer] CRITICAL ERROR during initialization:', err);
+                setError('Failed to initialize Spotify Player');
+                setPlayer(null);
             }
         };
 
