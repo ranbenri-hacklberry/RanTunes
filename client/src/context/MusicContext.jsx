@@ -142,35 +142,7 @@ export const MusicProvider = ({ children }) => {
         audioRef.current.volume = volume;
     }, [volume]);
 
-    // Listen for commands from iCaffe
-    useEffect(() => {
-        if (!currentUser?.email) return;
-
-        const channel = supabase
-            .channel('music-commands')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'music_commands',
-                    filter: `user_email=eq.${currentUser.email}`
-                },
-                (payload) => {
-                    console.log('🎮 Received command:', payload.new.command);
-                    const cmd = payload.new.command;
-                    if (cmd === 'play') resume();
-                    else if (cmd === 'pause') pause();
-                    else if (cmd === 'next') handleNext();
-                    else if (cmd === 'previous') handlePrevious();
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [currentUser?.email, resume, pause, handleNext, handlePrevious]);
+    // Listen for commands from iCaffe - MOVED BELOW after all callbacks are defined
 
     // Log skip - simplified version (old tables removed)
     const logSkip = useCallback(async (song, wasEarlySkip) => {
@@ -530,6 +502,36 @@ export const MusicProvider = ({ children }) => {
         setCurrentSong(null);
         setIsPlaying(false);
     }, []);
+
+    // Listen for commands from iCaffe (MUST be after all callbacks are defined)
+    useEffect(() => {
+        if (!currentUser?.email) return;
+
+        const channel = supabase
+            .channel('music-commands')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'music_commands',
+                    filter: `user_email=eq.${currentUser.email}`
+                },
+                (payload) => {
+                    console.log('🎮 Received command:', payload.new.command);
+                    const cmd = payload.new.command;
+                    if (cmd === 'play') resume();
+                    else if (cmd === 'pause') pause();
+                    else if (cmd === 'next') handleNext();
+                    else if (cmd === 'previous') handlePrevious();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [currentUser?.email, resume, pause, handleNext, handlePrevious]);
 
     const value = {
         // State
