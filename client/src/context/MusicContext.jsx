@@ -81,30 +81,27 @@ export const MusicProvider = ({ children }) => {
                     });
                 }
 
-                // Sync to Supabase for iCaffe
-                if (currentUser && currentUser.email && sdk.currentTrack) {
-                    const syncPlayback = async () => {
-                        try {
-                            await supabase.from('music_current_playback').upsert({
-                                user_email: currentUser.email,
-                                user_id: currentUser.id,
-                                song_id: sdk.currentTrack.id,
-                                song_title: sdk.currentTrack.name,
-                                artist_name: sdk.currentTrack.artists?.[0]?.name || 'Unknown',
-                                album_name: sdk.currentTrack.album?.name || '',
-                                cover_url: sdk.currentTrack.album?.images?.[0]?.url || null,
-                                spotify_uri: sdk.currentTrack.uri,
-                                is_playing: sdk.isPlaying,
-                                position_ms: Math.round(sdk.position),
-                                duration_ms: Math.round(sdk.duration),
-                                updated_at: new Date().toISOString()
-                            }, { onConflict: 'user_email' });
-                        } catch (err) {
-                            console.warn('Sync error:', err);
-                        }
-                    };
-                    syncPlayback();
+                // Sync to Supabase for iCaffe (disabled until table is created)
+                // TODO: Run CREATE_SHARED_PLAYBACK_TABLE.sql in Supabase to enable this
+                /*
+                if (currentUser && sdk.currentTrack) {
+                    try {
+                        await supabase.from('music_current_playback').upsert({
+                            user_id: currentUser.id,
+                            song_id: sdk.currentTrack.id,
+                            song_title: sdk.currentTrack.name,
+                            artist_name: sdk.currentTrack.artists?.[0]?.name || 'Unknown',
+                            album_name: sdk.currentTrack.album?.name || '',
+                            cover_url: sdk.currentTrack.album?.images?.[0]?.url || null,
+                            spotify_uri: sdk.currentTrack.uri,
+                            is_playing: sdk.isPlaying,
+                            updated_at: new Date().toISOString()
+                        }, { onConflict: 'user_id' });
+                    } catch (err) {
+                        console.warn('Sync error:', err);
+                    }
                 }
+                */
             }
         }
     }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, currentSong, playlist, currentUser]);
@@ -141,8 +138,6 @@ export const MusicProvider = ({ children }) => {
     useEffect(() => {
         audioRef.current.volume = volume;
     }, [volume]);
-
-    // Listen for commands from iCaffe - MOVED BELOW after all callbacks are defined
 
     // Log skip - simplified version (old tables removed)
     const logSkip = useCallback(async (song, wasEarlySkip) => {
@@ -239,11 +234,12 @@ export const MusicProvider = ({ children }) => {
                 setPlaylistIndex(idx >= 0 ? idx : 0);
             }
 
-            // Sync playback state to Supabase for iCaffe integration
-            if (currentUser && currentUser.email) {
+            // Sync playback state to Supabase for iCaffe integration (disabled until table is created)
+            // TODO: Run CREATE_SHARED_PLAYBACK_TABLE.sql in Supabase to enable this
+            /*
+            if (currentUser) {
                 try {
                     await supabase.from('music_current_playback').upsert({
-                        user_email: currentUser.email,
                         user_id: currentUser.id,
                         song_id: String(song.id),
                         song_title: song.title,
@@ -254,11 +250,12 @@ export const MusicProvider = ({ children }) => {
                         is_playing: true,
                         duration_ms: (song.duration_seconds || 0) * 1000,
                         updated_at: new Date().toISOString()
-                    }, { onConflict: 'user_email' });
+                    }, { onConflict: 'user_id' });
                 } catch (syncErr) {
                     console.warn('Failed to sync playback state:', syncErr);
                 }
             }
+            */
         } catch (error) {
             console.error('Error playing song:', error);
         } finally {
@@ -502,36 +499,6 @@ export const MusicProvider = ({ children }) => {
         setCurrentSong(null);
         setIsPlaying(false);
     }, []);
-
-    // Listen for commands from iCaffe (MUST be after all callbacks are defined)
-    useEffect(() => {
-        if (!currentUser?.email) return;
-
-        const channel = supabase
-            .channel('music-commands')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'music_commands',
-                    filter: `user_email=eq.${currentUser.email}`
-                },
-                (payload) => {
-                    console.log('🎮 Received command:', payload.new.command);
-                    const cmd = payload.new.command;
-                    if (cmd === 'play') resume();
-                    else if (cmd === 'pause') pause();
-                    else if (cmd === 'next') handleNext();
-                    else if (cmd === 'previous') handlePrevious();
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [currentUser?.email, resume, pause, handleNext, handlePrevious]);
 
     const value = {
         // State
