@@ -74,12 +74,12 @@ const MusicMiniBar = ({ onExpandClick }) => {
 
             {/* Controls */}
             <div className="flex items-center gap-1">
-                {/* Previous */}
+                {/* Next (Left in RTL scenario) */}
                 <button
-                    onClick={handlePrevious}
+                    onClick={handleNext}
                     className="music-mini-btn"
                 >
-                    <SkipBack className="w-4 h-4" />
+                    <SkipForward className="w-4 h-4 transform scale-x-[-1]" />
                 </button>
 
                 {/* Play/Pause */}
@@ -90,16 +90,16 @@ const MusicMiniBar = ({ onExpandClick }) => {
                     {isPlaying ? (
                         <Pause className="w-4 h-4" />
                     ) : (
-                        <Play className="w-4 h-4 mr-[-2px]" />
+                        <Play className="w-4 h-4 transform scale-x-[-1] ml-[-2px]" />
                     )}
                 </button>
 
-                {/* Next */}
+                {/* Previous (Right in RTL scenario) */}
                 <button
-                    onClick={handleNext}
+                    onClick={handlePrevious}
                     className="music-mini-btn"
                 >
-                    <SkipForward className="w-4 h-4" />
+                    <SkipBack className="w-4 h-4 transform scale-x-[-1]" />
                 </button>
 
                 {/* Divider */}

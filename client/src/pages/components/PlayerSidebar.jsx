@@ -19,27 +19,29 @@ const PlayerSidebar = ({
                         isPlaying={isPlaying}
                     />
 
-                    {/* Main Controls */}
+                    {/* Main Controls (RTL Swapped) */}
                     <div className="flex items-center gap-6 mt-8">
+                        {/* Next (Left) */}
                         <button
-                            onClick={handlePrevious}
+                            onClick={handleNext}
                             className="p-3 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all transform hover:scale-110"
                         >
-                            <SkipBack className="w-5 h-5" />
+                            <SkipForward className="w-5 h-5 transform scale-x-[-1]" />
                         </button>
 
                         <button
                             onClick={togglePlay}
                             className="w-16 h-16 rounded-full music-gradient-purple flex items-center justify-center text-white shadow-xl transform active:scale-95 hover:scale-105 transition-all"
                         >
-                            {isPlaying ? <Pause className="w-8 h-8 fill-white" /> : <Play className="w-8 h-8 fill-white ml-1" />}
+                            {isPlaying ? <Pause className="w-8 h-8 fill-white" /> : <Play className="w-8 h-8 fill-white transform scale-x-[-1] ml-[-4px]" />}
                         </button>
 
+                        {/* Previous (Right) */}
                         <button
-                            onClick={handleNext}
+                            onClick={handlePrevious}
                             className="p-3 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all transform hover:scale-110"
                         >
-                            <SkipForward className="w-5 h-5" />
+                            <SkipBack className="w-5 h-5 transform scale-x-[-1]" />
                         </button>
                     </div>
 

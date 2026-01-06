@@ -90,7 +90,7 @@ const AlbumCard = ({
                    opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300
                    shadow-lg hover:scale-110 z-10"
             >
-                <Play className="w-6 h-6 text-white fill-white mr-[-2px]" />
+                <Play className="w-6 h-6 text-white fill-white transform scale-x-[-1] ml-[-2px]" />
             </button>
         </div>
     );

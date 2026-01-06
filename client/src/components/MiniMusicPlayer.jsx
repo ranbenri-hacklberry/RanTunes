@@ -90,16 +90,16 @@ const MiniMusicPlayer = ({ onClick }) => {
                         onClick={togglePlay}
                         className="p-2 w-10 h-10 rounded-full bg-white text-black hover:bg-white/90 transition-all flex items-center justify-center shadow-lg mx-1"
                     >
-                        {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
+                        {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="transform scale-x-[-1] ml-[-2px]" />}
                     </button>
 
-                    {/* Next */}
+                    {/* Next (Left in RTL scenario) */}
                     <button
                         onClick={handleNext}
-                        className="p-2 rounded-lg text-white/40 hover:bg-white/10 hover:text-white transition-all"
+                        className="p-2 rounded-lg text-white/40 hover:bg-white/10 hover:text-white transition-all transform scale-x-[-1]"
                         title="הבא"
                     >
-                        <SkipBack size={18} />
+                        <SkipForward size={18} />
                     </button>
                 </div>
             </div>

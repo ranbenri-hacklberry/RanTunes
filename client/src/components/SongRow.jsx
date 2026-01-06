@@ -82,7 +82,7 @@ const SongRow = ({
                    flex items-center justify-center opacity-0 group-hover:opacity-100
                    transition-all ml-2 flex-shrink-0"
             >
-                <Play className="w-4 h-4 text-white fill-white" />
+                <Play className="w-4 h-4 text-white fill-white transform scale-x-[-1]" />
             </button>
         </div>
     );

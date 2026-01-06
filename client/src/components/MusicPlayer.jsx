@@ -42,11 +42,12 @@ const MusicPlayer = ({ onMinimize, showPlaylist = false }) => {
     // Progress percentage
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-    // Handle seek
+    // Handle seek (RTL support)
     const handleSeek = (e) => {
         const rect = e.currentTarget.getBoundingClientRect();
-        const percent = (e.clientX - rect.left) / rect.width;
-        seek(percent * duration);
+        // Calculate percent from right to left for RTL
+        const percent = (rect.right - e.clientX) / rect.width;
+        seek(Math.max(0, Math.min(1, percent)) * duration);
     };
 
 
@@ -142,20 +143,20 @@ const MusicPlayer = ({ onMinimize, showPlaylist = false }) => {
                 </div>
             </div>
 
-            {/* Progress bar */}
-            <div className="px-8 pb-4">
+            {/* Progress bar (RTL) */}
+            <div className="px-8 pb-4" dir="rtl">
                 <div
-                    className="music-progress-container"
+                    className="music-progress-container relative"
                     onClick={handleSeek}
                 >
                     <div
-                        className="music-progress-bar"
+                        className="music-progress-bar absolute right-0 top-0 h-full"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
-                <div className="flex justify-between mt-2">
-                    <span className="text-white/40 text-sm">{formatTime(currentTime)}</span>
-                    <span className="text-white/40 text-sm">{formatTime(duration)}</span>
+                <div className="flex justify-between mt-2 text-white/40 text-xs font-mono">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
                 </div>
             </div>
 
@@ -171,32 +172,32 @@ const MusicPlayer = ({ onMinimize, showPlaylist = false }) => {
                         <Shuffle className="w-5 h-5" />
                     </button>
 
-                    {/* Previous */}
+                    {/* Next (Left in RTL scenario) */}
                     <button
-                        onClick={handlePrevious}
-                        className="w-14 h-14 rounded-full music-glass flex items-center justify-center"
+                        onClick={handleNext}
+                        className="w-14 h-14 rounded-full music-glass flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
                     >
-                        <SkipBack className="w-7 h-7 text-white" />
+                        <SkipForward className="w-7 h-7 text-white transform scale-x-[-1]" />
                     </button>
 
                     {/* Play/Pause */}
                     <button
                         onClick={togglePlay}
-                        className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-xl"
+                        className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-xl transition-transform hover:scale-110 active:scale-95"
                     >
                         {isPlaying ? (
                             <Pause className="w-10 h-10 text-purple-600" />
                         ) : (
-                            <Play className="w-10 h-10 text-purple-600 mr-[-4px]" />
+                            <Play className="w-10 h-10 text-purple-600 transform scale-x-[-1] ml-[-4px]" />
                         )}
                     </button>
 
-                    {/* Next */}
+                    {/* Previous (Right in RTL scenario) */}
                     <button
-                        onClick={handleNext}
-                        className="w-14 h-14 rounded-full music-glass flex items-center justify-center"
+                        onClick={handlePrevious}
+                        className="w-14 h-14 rounded-full music-glass flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
                     >
-                        <SkipForward className="w-7 h-7 text-white" />
+                        <SkipBack className="w-7 h-7 text-white transform scale-x-[-1]" />
                     </button>
 
                     {/* Repeat */}

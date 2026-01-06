@@ -172,6 +172,11 @@
   transition: width 0.1s linear;
 }
 
+/* RTL Progress override */
+[dir="rtl"] .music-progress-bar {
+  background: linear-gradient(270deg, #667eea 0%, #f093fb 100%);
+}
+
 .music-progress-container:hover .music-progress-bar {
   height: 8px;
   margin-top: -1px;
