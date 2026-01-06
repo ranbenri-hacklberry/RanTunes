@@ -38,10 +38,32 @@ const App = () => {
     }
 
     // Show loading spinner while checking auth
+    const [showRetry, setShowRetry] = React.useState(false);
+
+    React.useEffect(() => {
+        if (isLoading) {
+            const timer = setTimeout(() => setShowRetry(true), 10000);
+            return () => clearTimeout(timer);
+        } else {
+            setShowRetry(false);
+        }
+    }, [isLoading]);
+
     if (isLoading) {
         return (
-            <div className="min-h-screen music-gradient-dark flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
+            <div className="min-h-screen music-gradient-dark flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mb-6" />
+                {showRetry && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <p className="text-white/60 mb-4 font-medium">הטעינה לוקחת קצת זמן...</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-full text-sm font-bold transition-all shadow-lg hover:shadow-purple-500/25"
+                        >
+                            רענן דף
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }

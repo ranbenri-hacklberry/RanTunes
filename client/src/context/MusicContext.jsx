@@ -42,6 +42,19 @@ export const MusicProvider = ({ children }) => {
     // Loading and error states
     const [isLoading, setIsLoading] = useState(false);
     const [playbackError, setPlaybackError] = useState(null);
+    const [toast, setToast] = useState(null);
+
+    /**
+     * Shows a toast message that auto-dismisses.
+     * @param {string} message - Message to display
+     * @param {string} [type='info'] - 'info', 'error', or 'success'
+     */
+    const showToast = useCallback((message, type = 'info') => {
+        setToast({ message, type, id: Date.now() });
+        setTimeout(() => setToast(current =>
+            current?.message === message ? null : current
+        ), 3000);
+    }, []);
 
     // Memoized list of playable songs (excludes disliked)
     const playableSongs = useMemo(() =>
@@ -54,23 +67,24 @@ export const MusicProvider = ({ children }) => {
     // Debounce ref for SDK sync to prevent race conditions
     const syncDebounceRef = useRef(null);
 
-    // Sync SDK state with context state - ONLY when on a Spotify song (debounced)
+    // Sync position and playing state only (fast sync)
     useEffect(() => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
         if (!isSpotify || !sdk.isReady) return;
 
-        // Clear previous debounce timer
-        if (syncDebounceRef.current) {
-            clearTimeout(syncDebounceRef.current);
-        }
+        setIsPlaying(sdk.isPlaying);
+        if (sdk.position > 0) setCurrentTime(sdk.position / 1000);
+        if (sdk.duration > 0) setDuration(sdk.duration / 1000);
+    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady]);
 
-        // Debounce state updates to prevent race conditions
+    // Sync track changes (debounced sync)
+    useEffect(() => {
+        const isSpotify = currentSong?.file_path?.startsWith('spotify:');
+        if (!isSpotify || !sdk.isReady) return;
+
+        if (syncDebounceRef.current) clearTimeout(syncDebounceRef.current);
+
         syncDebounceRef.current = setTimeout(() => {
-            setIsPlaying(sdk.isPlaying);
-            if (sdk.position > 0) setCurrentTime(sdk.position / 1000);
-            if (sdk.duration > 0) setDuration(sdk.duration / 1000);
-
-            // Detect track change from Spotify SDK
             if (sdk.currentTrack && sdk.currentTrack.uri !== currentSong?.file_path) {
                 const newTrackUri = sdk.currentTrack.uri;
                 const newTrackInPlaylist = playlist.find(s => s.file_path === newTrackUri);
@@ -80,7 +94,6 @@ export const MusicProvider = ({ children }) => {
                     const newIndex = playlist.findIndex(s => s.file_path === newTrackUri);
                     if (newIndex >= 0) setPlaylistIndex(newIndex);
                 } else {
-                    // Track not in our playlist - create a minimal song object
                     const spotifyTrack = sdk.currentTrack;
                     setCurrentSong({
                         id: spotifyTrack.id,
@@ -95,23 +108,29 @@ export const MusicProvider = ({ children }) => {
                     });
                 }
             }
-        }, 100); // 100ms debounce
+        }, 400); // Higher debounce for track sync stability
 
         return () => {
-            if (syncDebounceRef.current) {
-                clearTimeout(syncDebounceRef.current);
-            }
+            if (syncDebounceRef.current) clearTimeout(syncDebounceRef.current);
         };
-    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, currentSong, playlist, currentUser]);
+    }, [sdk.currentTrack, sdk.isReady, currentSong?.file_path, playlist]);
 
     // Skip threshold - if song was played less than 30% before skip, count as dislike
     const SKIP_THRESHOLD = 0.3;
 
-    // Audio event listeners
+    // Audio event listeners and cleanup
     useEffect(() => {
         const audio = audioRef.current;
+        let lastUpdateTime = 0;
 
-        const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+        const handleTimeUpdate = () => {
+            const now = Date.now();
+            // Only update state every 500ms to save renders
+            if (now - lastUpdateTime > 500) {
+                setCurrentTime(audio.currentTime);
+                lastUpdateTime = now;
+            }
+        };
         const handleDurationChange = () => setDuration(audio.duration || 0);
         const handleEnded = () => handleNextRef.current();
         const handlePlay = () => setIsPlaying(true);
@@ -124,11 +143,15 @@ export const MusicProvider = ({ children }) => {
         audio.addEventListener('pause', handlePause);
 
         return () => {
+            // Stop and cleanup audio on unmount
             audio.removeEventListener('timeupdate', handleTimeUpdate);
             audio.removeEventListener('durationchange', handleDurationChange);
             audio.removeEventListener('ended', handleEnded);
             audio.removeEventListener('play', handlePlay);
             audio.removeEventListener('pause', handlePause);
+            audio.pause();
+            audio.src = '';
+            audio.load();
         };
     }, []);
 
@@ -174,21 +197,27 @@ export const MusicProvider = ({ children }) => {
                 try {
                     if (sdk.isReady && sdk.deviceId) {
                         await sdk.play(song.file_path, 0, allSpotifyUris);
+                        setIsPlaying(true);
                     } else if (song.preview_url) {
                         // Fallback to preview URL if SDK not ready
                         audioRef.current.src = song.preview_url;
                         audioRef.current.load();
                         await audioRef.current.play();
+                        setIsPlaying(true);
+                        showToast('מנגן תצוגה מקדימה (Spotify SDK לא זמין)', 'info');
                     } else {
                         // Last resort: try Spotify Web API remote control
                         const SpotifyService = (await import('@/lib/spotifyService')).default;
                         await SpotifyService.play({ uris: [song.file_path] });
+                        setIsPlaying(true);
+                        showToast('מנגן דרך Spotify Connect', 'info');
                     }
                 } catch (err) {
-                    setPlaybackError(`לא ניתן לנגן: ${err.message || 'שגיאה לא ידועה'}`);
-                    // Don't throw - gracefully continue
+                    const errorMsg = err.message || 'לא ניתן לנגן את הרצועה';
+                    setPlaybackError(`שגיאת Spotify: ${errorMsg}`);
+                    showToast(errorMsg, 'error');
+                    setIsPlaying(false);
                 }
-                setIsPlaying(true);
             } else {
                 // Regular track - build audio URL
                 let audioUrl;
@@ -321,9 +350,10 @@ export const MusicProvider = ({ children }) => {
         const isDislikedSong = (s) => (s?.myRating || 0) === 1;
 
         // Early exit if ALL songs are disliked
-        const playableSongs = playlist.filter(s => !isDislikedSong(s));
-        if (playableSongs.length === 0) {
+        const playableSongsList = playlist.filter(s => !isDislikedSong(s));
+        if (playableSongsList.length === 0) {
             setIsPlaying(false);
+            showToast('כל השירים ברשימה מסומנים כ"לא אהוב"', 'error');
             return;
         }
 
@@ -373,7 +403,7 @@ export const MusicProvider = ({ children }) => {
 
     // Previous song
     const handlePrevious = useCallback(() => {
-        if (!playlist.length) return;
+        if (!playlist.length || !playableSongs.length) return;
 
         // If more than 3 seconds in, restart current song
         if (currentTime > 3) {
@@ -381,40 +411,44 @@ export const MusicProvider = ({ children }) => {
             return;
         }
 
-        const isDislikedSong = (s) => (s?.myRating || 0) === 1;
+        let prevIndex;
+        if (shuffle) {
+            // Pick random from playable songs
+            const randomPlayable = playableSongs[Math.floor(Math.random() * playableSongs.length)];
+            prevIndex = playlist.findIndex(s => s.id === randomPlayable.id);
+        } else {
+            prevIndex = playlistIndex - 1;
 
-        let prevIndex = playlistIndex - 1;
-        if (prevIndex < 0) {
-            prevIndex = repeat === 'all' ? playlist.length - 1 : 0;
-        }
-
-        // Skip disliked songs (backwards scan)
-        let guard = 0;
-        while (guard < playlist.length && isDislikedSong(playlist[prevIndex])) {
-            prevIndex -= 1;
+            // If we hit the beginning, wrap or stop
             if (prevIndex < 0) {
-                if (repeat === 'all') prevIndex = playlist.length - 1;
-                else {
-                    // Start of playlist reached and it's disliked
+                if (repeat === 'all') {
+                    prevIndex = playlist.length - 1;
+                } else {
                     prevIndex = 0;
-                    // If even the first one is disliked, we stop or find first playable
-                    if (isDislikedSong(playlist[0])) {
-                        let firstPlayable = playlist.findIndex(s => !isDislikedSong(s));
-                        if (firstPlayable === -1) {
-                            setIsPlaying(false);
-                            return;
-                        }
-                        prevIndex = firstPlayable;
-                    }
-                    break;
                 }
             }
-            guard += 1;
+
+            // Guard against disliked songs (backwards scan)
+            const isDislikedSong = (s) => (s?.myRating || 0) === 1;
+            let guard = 0;
+            while (guard < playlist.length && isDislikedSong(playlist[prevIndex])) {
+                prevIndex -= 1;
+                if (prevIndex < 0) {
+                    if (repeat === 'all') prevIndex = playlist.length - 1;
+                    else {
+                        prevIndex = playlist.findIndex(s => !isDislikedSong(s));
+                        break;
+                    }
+                }
+                guard += 1;
+            }
         }
 
-        setPlaylistIndex(prevIndex);
-        playSong(playlist[prevIndex]);
-    }, [playlist, playlistIndex, repeat, currentTime, playSong]);
+        if (prevIndex !== -1) {
+            setPlaylistIndex(prevIndex);
+            playSong(playlist[prevIndex]);
+        }
+    }, [playlist, playlistIndex, repeat, currentTime, playSong, playableSongs, shuffle]);
 
     // Seek to position
     const seek = useCallback((time) => {
@@ -427,11 +461,7 @@ export const MusicProvider = ({ children }) => {
 
     // Rate a song (like/dislike only)
     const rateSong = useCallback(async (songId, rating) => {
-        console.log('🎵 rateSong called:', { songId, rating, currentUser: currentUser?.id });
-        if (!currentUser || !songId) {
-            console.log('🎵 rateSong: missing user or songId', { hasUser: !!currentUser, hasSongId: !!songId });
-            return false;
-        }
+        if (!currentUser || !songId) return false;
 
         try {
             // Use Supabase directly to save rating
@@ -500,6 +530,8 @@ export const MusicProvider = ({ children }) => {
         repeat,
         isLoading,
         playbackError,
+        toast,
+        showToast,
         playableSongs, // Memoized list of non-disliked songs
 
         // Actions
