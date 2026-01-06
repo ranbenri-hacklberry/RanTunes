@@ -1,18 +1,13 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useMusic } from '@/context/MusicContext';
 import { useAlbums } from '@/hooks/useAlbums';
 import AlbumCard from '@/components/AlbumCard';
 import { Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 const MobileHome = () => {
     const { playSong } = useMusic();
-    const { albums, isLoading, refreshAll, fetchAlbumSongs } = useAlbums();
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        refreshAll();
-    }, []); // Fetch on mount
+    const { albums, isLoading, fetchAlbumSongs } = useAlbums();
+    // Note: refreshAll is called internally by useAlbums on mount, no need to call it here
 
     const handleAlbumPlay = async (album) => {
         // Quick play action

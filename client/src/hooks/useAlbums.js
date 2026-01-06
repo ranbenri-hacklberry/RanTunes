@@ -614,7 +614,7 @@ export const useAlbums = () => {
     // Initial fetch on mount
     useEffect(() => {
         refreshAll();
-    }, []);
+    }, [refreshAll]);
 
     return {
         artists,
