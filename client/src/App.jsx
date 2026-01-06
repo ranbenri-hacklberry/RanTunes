@@ -134,22 +134,14 @@ const App = () => {
 };
 
 // Internal wrapper to handle routing logic cleanly
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+// NOTE: BrowserRouter is already in main.jsx, DO NOT add another one here!
+import { Routes, Route, Navigate } from 'react-router-dom';
 import MobileLayout from './mobile/MobileLayout';
 import MobileHome from './mobile/pages/MobileHome';
 
 const MobileRouterWrapper = () => {
-    // We need to determine if we should redirect to mobile
-    // This is a bit tricky with existing structure not using Router at root efficiently
-    // But let's wrap everything in BrowserRouter here since App didn't have it before?
-    // Actually, MusicPage (index.jsx) likely doesn't use Router, it's a single page app logic.
-    // If we Introduce Router, we must ensure existing MusicPage doesn't break if it expects props or context.
-
-    return (
-        <BrowserRouter>
-            <AppRoutes />
-        </BrowserRouter>
-    );
+    // BrowserRouter is already provided in main.jsx - just render routes
+    return <AppRoutes />;
 };
 
 const AppRoutes = () => {
