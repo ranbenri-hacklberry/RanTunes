@@ -174,19 +174,30 @@ export async function getAccessToken() {
     const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     const tokenExpiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
 
+    console.log('🔑 [SpotifyService] getAccessToken called');
+    console.log('🔑 [SpotifyService] Token exists:', !!accessToken);
+    console.log('🔑 [SpotifyService] Token expiry:', tokenExpiry ? new Date(Number(tokenExpiry)).toLocaleString() : 'NONE');
+
     if (!accessToken) {
+        console.log('🔑 [SpotifyService] No access token found in localStorage');
         return null;
     }
 
     // Refresh if token expires in less than 5 minutes
+    const timeUntilExpiry = Number(tokenExpiry) - Date.now();
+    console.log('🔑 [SpotifyService] Time until expiry:', Math.round(timeUntilExpiry / 1000 / 60), 'minutes');
+
     if (tokenExpiry && Date.now() > Number(tokenExpiry) - 5 * 60 * 1000) {
+        console.log('🔑 [SpotifyService] Token expired or expiring soon, refreshing...');
         try {
             return await refreshAccessToken();
-        } catch {
+        } catch (err) {
+            console.error('🔑 [SpotifyService] Failed to refresh token:', err);
             return null;
         }
     }
 
+    console.log('🔑 [SpotifyService] Returning valid token');
     return accessToken;
 }
 
@@ -194,7 +205,9 @@ export async function getAccessToken() {
  * Check if user is logged in to Spotify
  */
 export function isSpotifyLoggedIn() {
-    return !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const hasToken = !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    console.log('🔑 [SpotifyService] isSpotifyLoggedIn:', hasToken);
+    return hasToken;
 }
 
 /**

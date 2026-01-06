@@ -23,17 +23,25 @@ export function useSpotifyPlayer() {
 
     // Initialize the Spotify Player
     useEffect(() => {
+        console.log('🎵 [SpotifyPlayer] Initializing Spotify Player hook...');
+
         // Load Spotify SDK script
         if (!window.Spotify) {
+            console.log('🎵 [SpotifyPlayer] Loading Spotify SDK script...');
             const script = document.createElement('script');
             script.src = 'https://sdk.scdn.co/spotify-player.js';
             script.async = true;
             document.body.appendChild(script);
+        } else {
+            console.log('🎵 [SpotifyPlayer] Spotify SDK already loaded');
         }
 
         window.onSpotifyWebPlaybackSDKReady = async () => {
+            console.log('🎵 [SpotifyPlayer] SDK Ready callback triggered!');
             const token = await getAccessToken();
+            console.log('🎵 [SpotifyPlayer] Token retrieved:', token ? `${token.substring(0, 20)}...` : 'NULL');
             if (!token) {
+                console.error('🎵 [SpotifyPlayer] ERROR: No Spotify token available!');
                 setError('No Spotify token available');
                 return;
             }
@@ -49,22 +57,24 @@ export function useSpotifyPlayer() {
 
             // Error handling
             spotifyPlayer.addListener('initialization_error', ({ message }) => {
-                console.error('Spotify init error:', message);
+                console.error('🎵 [SpotifyPlayer] INITIALIZATION ERROR:', message);
                 setError(message);
             });
 
             spotifyPlayer.addListener('authentication_error', ({ message }) => {
-                console.error('Spotify auth error:', message);
+                console.error('🎵 [SpotifyPlayer] AUTHENTICATION ERROR:', message);
+                console.error('🎵 [SpotifyPlayer] This usually means the token is invalid or expired');
                 setError(message);
             });
 
             spotifyPlayer.addListener('account_error', ({ message }) => {
-                console.error('Spotify account error:', message);
+                console.error('🎵 [SpotifyPlayer] ACCOUNT ERROR:', message);
+                console.error('🎵 [SpotifyPlayer] ⚠️ Premium account is REQUIRED for playback!');
                 setError('Premium account required for playback');
             });
 
             spotifyPlayer.addListener('playback_error', ({ message }) => {
-                console.error('Spotify playback error:', message);
+                console.error('🎵 [SpotifyPlayer] PLAYBACK ERROR:', message);
             });
 
             // Playback status updates
@@ -98,11 +108,14 @@ export function useSpotifyPlayer() {
             });
 
             // Connect to the player
+            console.log('🎵 [SpotifyPlayer] Attempting to connect to Spotify...');
             const success = await spotifyPlayer.connect();
             if (success) {
-                console.log('🎵 Connected to Spotify!');
+                console.log('🎵 [SpotifyPlayer] ✅ Successfully connected to Spotify!');
                 playerRef.current = spotifyPlayer;
                 setPlayer(spotifyPlayer);
+            } else {
+                console.error('🎵 [SpotifyPlayer] ❌ Failed to connect to Spotify!');
             }
         };
 
@@ -146,20 +159,30 @@ export function useSpotifyPlayer() {
 
     // Play a specific track
     const play = useCallback(async (spotifyUri, positionMs = 0) => {
+        console.log('🎵 [SpotifyPlayer] play() called with URI:', spotifyUri);
+        console.log('🎵 [SpotifyPlayer] Current deviceId:', deviceId);
+        console.log('🎵 [SpotifyPlayer] isReady:', isReady);
+
         if (!deviceId) {
+            console.error('🎵 [SpotifyPlayer] ERROR: No device ID available!');
             setError('No device available');
             return;
         }
 
         const token = await getAccessToken();
-        if (!token) return;
+        console.log('🎵 [SpotifyPlayer] Token for play:', token ? 'exists' : 'NULL');
+        if (!token) {
+            console.error('🎵 [SpotifyPlayer] ERROR: No token for playback!');
+            return;
+        }
 
         try {
             const isActive = await checkIsActive();
+            console.log('🎵 [SpotifyPlayer] Is device active?', isActive);
 
             if (!isActive) {
-                console.log('🎵 Device not active, transferring playback...', deviceId);
-                await fetch('https://api.spotify.com/v1/me/player', {
+                console.log('🎵 [SpotifyPlayer] Device not active, transferring playback to:', deviceId);
+                const transferResponse = await fetch('https://api.spotify.com/v1/me/player', {
                     method: 'PUT',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -170,11 +193,18 @@ export function useSpotifyPlayer() {
                         play: false,
                     }),
                 });
+                console.log('🎵 [SpotifyPlayer] Transfer response status:', transferResponse.status);
+                if (!transferResponse.ok) {
+                    const errorText = await transferResponse.text();
+                    console.error('🎵 [SpotifyPlayer] Transfer failed:', errorText);
+                }
                 await new Promise(resolve => setTimeout(resolve, 1500));
             }
 
             const body = { uris: [spotifyUri], position_ms: positionMs };
-            await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+            console.log('🎵 [SpotifyPlayer] Sending play request with body:', JSON.stringify(body));
+
+            const playResponse = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -182,10 +212,18 @@ export function useSpotifyPlayer() {
                 },
                 body: JSON.stringify(body),
             });
+
+            console.log('🎵 [SpotifyPlayer] Play response status:', playResponse.status);
+            if (!playResponse.ok) {
+                const errorText = await playResponse.text();
+                console.error('🎵 [SpotifyPlayer] Play request failed:', errorText);
+            } else {
+                console.log('🎵 [SpotifyPlayer] ✅ Play request successful!');
+            }
         } catch (err) {
-            console.error('Spotify Play error:', err);
+            console.error('🎵 [SpotifyPlayer] Spotify Play error:', err);
         }
-    }, [deviceId]);
+    }, [deviceId, isReady]);
 
     return {
         player,

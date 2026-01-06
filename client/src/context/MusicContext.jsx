@@ -34,6 +34,16 @@ export const MusicProvider = ({ children }) => {
     // Spotify Player Hook
     const sdk = useSpotifyPlayer();
 
+    // Log SDK state changes
+    useEffect(() => {
+        console.log('🎧 [MusicContext] SDK State Updated:', {
+            isReady: sdk.isReady,
+            deviceId: sdk.deviceId,
+            error: sdk.error,
+            isPlaying: sdk.isPlaying
+        });
+    }, [sdk.isReady, sdk.deviceId, sdk.error, sdk.isPlaying]);
+
     // Sync SDK state with context state - ONLY when on a Spotify song
     useEffect(() => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
@@ -123,16 +133,20 @@ export const MusicProvider = ({ children }) => {
 
     // Play a song
     const playSong = useCallback(async (song, playlistSongs = null) => {
-        if (!song) return;
+        console.log('🎧 [MusicContext] ========== playSong called ==========');
+        console.log('🎧 [MusicContext] Song:', song?.title, song?.file_path);
+        console.log('🎧 [MusicContext] SDK state:', { isReady: sdk.isReady, deviceId: sdk.deviceId, error: sdk.error });
+
+        if (!song) {
+            console.log('🎧 [MusicContext] No song provided, returning');
+            return;
+        }
 
         // Never play disliked songs
         if ((song.myRating || 0) === 1) {
-            console.log('🎵 playSong: skipping disliked song:', song.title);
-            // If we have a playlist, move to next
+            console.log('🎧 [MusicContext] Skipping disliked song:', song.title);
             if (playlistSongs || playlist.length > 0) {
-                // If playlistSongs is provided, we need to update our local state first
                 if (playlistSongs) setPlaylist(playlistSongs);
-                // Call handleNext (wrapped in timeout to avoid recursion issues)
                 setTimeout(() => handleNextRef.current(), 100);
             }
             return;
@@ -143,25 +157,30 @@ export const MusicProvider = ({ children }) => {
         try {
             // Detect if it's a Spotify track
             const isSpotifyTrack = song.file_path?.startsWith('spotify:');
+            console.log('🎧 [MusicContext] Is Spotify track?', isSpotifyTrack);
 
             if (isSpotifyTrack) {
+                console.log('🎧 [MusicContext] Attempting Spotify playback...');
+                console.log('🎧 [MusicContext] SDK Ready?', sdk.isReady, 'Device ID?', sdk.deviceId);
+
                 // If Spotify track, use SDK if ready, or fallback to remote
                 try {
                     if (sdk.isReady && sdk.deviceId) {
-                        console.log('🎵 Playing via SDK device:', sdk.deviceId);
+                        console.log('🎧 [MusicContext] ✅ Playing via SDK device:', sdk.deviceId);
                         await sdk.play(song.file_path);
+                        console.log('🎧 [MusicContext] sdk.play() completed');
                     } else if (song.preview_url) {
-                        // Fallback to preview if SDK not ready
+                        console.log('🎧 [MusicContext] ⚠️ SDK not ready, falling back to preview_url:', song.preview_url);
                         audioRef.current.src = song.preview_url;
                         audioRef.current.load();
                         await audioRef.current.play();
                     } else {
-                        // Ultimate fallback: Remote Control
+                        console.log('🎧 [MusicContext] ⚠️ No SDK, no preview. Trying remote control...');
                         const SpotifyService = (await import('@/lib/spotifyService')).default;
                         await SpotifyService.play({ uris: [song.file_path] });
                     }
                 } catch (err) {
-                    console.error('Spotify playback failed:', err);
+                    console.error('🎧 [MusicContext] ❌ Spotify playback failed:', err);
                 }
                 setIsPlaying(true);
             } else {
