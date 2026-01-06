@@ -2,7 +2,11 @@ import React from 'react';
 import { useRanTunesAuth } from './context/RanTunesAuthContext';
 import AuthScreen from './pages/AuthScreen';
 import MusicPage from './pages/index.jsx';
-import { supabaseConfigMissing } from './lib/supabase';
+
+// Check env vars directly to avoid circular dependency
+const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY;
+const supabaseConfigMissing = !supabaseUrl || !supabaseAnonKey;
 
 /**
  * App Component - Routes between Auth and Music based on authentication state
