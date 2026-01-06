@@ -64,6 +64,9 @@ const MusicPageContent = () => {
         handleNext,
         playlist,
         rateSong,
+        currentTime,
+        duration,
+        seek,
         toast,
         clearError
     } = useMusic();
@@ -87,6 +90,25 @@ const MusicPageContent = () => {
     });
 
     const songListRef = useRef(null);
+
+    // Format time (seconds to MM:SS)
+    const formatTime = (seconds) => {
+        if (!seconds || isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Progress percentage
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    // Handle seek (RTL support)
+    const handleSeek = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        // Calculate percent from right to left for RTL
+        const percent = (rect.right - e.clientX) / rect.width;
+        seek(Math.max(0, Math.min(1, percent)) * duration);
+    };
 
     useEffect(() => {
         setIsSpotifyConnected(SpotifyService.isSpotifyLoggedIn());
@@ -411,7 +433,38 @@ const MusicPageContent = () => {
                         song={currentSong}
                         isPlaying={isPlaying}
                         albumArt={currentSong?.album?.cover_url}
+                        hideInfo={true}
                     />
+
+                    {currentSong && (
+                        <div className="w-full text-center mt-6" dir="rtl">
+                            <h2 className="text-2xl font-bold text-white truncate px-2 drop-shadow-md">
+                                {currentSong.title}
+                            </h2>
+                            <p className="text-white/60 text-sm mt-1 truncate px-4">
+                                {currentSong.artist?.name || 'אמן לא ידוע'}
+                            </p>
+                        </div>
+                    )}
+
+                    {currentSong && (
+                        <div className="w-full mt-6 px-4" dir="rtl">
+                            {/* Progress bar (RTL) */}
+                            <div
+                                className="music-progress-container relative w-full h-2 bg-white/5 rounded-full overflow-hidden cursor-pointer group hover:h-2.5 transition-all"
+                                onClick={handleSeek}
+                            >
+                                <div
+                                    className="music-progress-bar absolute right-0 top-0 h-full bg-gradient-to-l from-purple-500 via-pink-500 to-purple-400 rounded-full transition-all duration-300 ease-linear shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                            <div className="flex justify-between mt-2 text-[11px] text-white/30 font-mono tracking-wide">
+                                <span>{formatTime(currentTime)}</span>
+                                <span>{formatTime(duration)}</span>
+                            </div>
+                        </div>
+                    )}
 
                     {currentSong && (
                         <>
@@ -563,13 +616,13 @@ const MusicPageContent = () => {
                                                             <p className="text-white/70 text-xs truncate leading-tight">{album.artist?.name}</p>
                                                         </div>
 
-                                                        {/* Play Button Overlay */}
+                                                        {/* Play Button Overlay (Flipped for RTL) */}
                                                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handleAlbumPlay(album); }}
                                                                 className="w-10 h-10 rounded-full music-gradient-purple flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition-transform"
                                                             >
-                                                                <Play className="w-5 h-5 text-white fill-white" />
+                                                                <Play className="w-5 h-5 text-white fill-white transform scale-x-[-1] ml-[-2px]" />
                                                             </button>
                                                         </div>
                                                     </div>

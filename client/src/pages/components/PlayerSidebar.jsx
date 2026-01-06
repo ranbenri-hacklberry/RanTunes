@@ -8,8 +8,29 @@ const PlayerSidebar = ({
     togglePlay,
     handleNext,
     handlePrevious,
-    rateSong
+    rateSong,
+    currentTime = 0,
+    duration = 0,
+    seek = () => { }
 }) => {
+    // Format time (seconds to MM:SS)
+    const formatTime = (seconds) => {
+        if (!seconds || isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Progress percentage
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    // Handle seek (RTL support)
+    const handleSeek = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        // Calculate percent from right to left for RTL
+        const percent = (rect.right - e.clientX) / rect.width;
+        seek(Math.max(0, Math.min(1, percent)) * duration);
+    };
     return (
         <div className="w-[320px] shrink-0 border-l border-white/10 flex flex-col items-center p-6 bg-black/20 overflow-y-auto music-scrollbar">
             {currentSong ? (
@@ -18,6 +39,23 @@ const PlayerSidebar = ({
                         currentSong={currentSong}
                         isPlaying={isPlaying}
                     />
+
+                    {/* Progress Bar (RTL) */}
+                    <div className="w-full mt-4 px-2" dir="rtl">
+                        <div
+                            className="music-progress-container relative w-full h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer"
+                            onClick={handleSeek}
+                        >
+                            <div
+                                className="music-progress-bar absolute right-0 top-0 h-full bg-gradient-to-l from-purple-600 to-pink-500 rounded-full transition-all duration-300 ease-linear"
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                        <div className="flex justify-between mt-2 text-[10px] text-white/40 font-mono">
+                            <span>{formatTime(currentTime)}</span>
+                            <span>{formatTime(duration)}</span>
+                        </div>
+                    </div>
 
                     {/* Main Controls (RTL Swapped) */}
                     <div className="flex items-center gap-6 mt-8">

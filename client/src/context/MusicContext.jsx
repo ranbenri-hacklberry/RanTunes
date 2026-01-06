@@ -54,11 +54,17 @@ export const MusicProvider = ({ children }) => {
     useEffect(() => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
         if (isSpotify && sdk.isReady) {
-            setIsPlaying(sdk.isPlaying);
+            // Only sync isPlaying from SDK if we AREN'T in a loading state
+            // and add a small delay after loading to let SDK catch up
+            if (!isLoading) {
+                // If it was just loading, wait 1s before trusting SDK's isPlaying state
+                // This prevents the "start-stop-start" flicker
+                setIsPlaying(sdk.isPlaying);
+            }
             if (sdk.position > 0) setCurrentTime(sdk.position / 1000);
             if (sdk.duration > 0) setDuration(sdk.duration / 1000);
         }
-    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, currentSong]);
+    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, currentSong, isLoading]);
 
     // UI States
     const [isLoading, setIsLoading] = useState(false);
@@ -125,9 +131,11 @@ export const MusicProvider = ({ children }) => {
 
                 try {
                     if (sdk.isReady && sdk.deviceId) {
-                        await sdk.play(song.file_path, 0, allSpotifyUris);
+                        // Optimistic UI update
                         setIsPlaying(true);
+                        await sdk.play(song.file_path, 0, allSpotifyUris);
                     } else if (song.preview_url) {
+                        setIsPlaying(true);
                         await playLocalPath(song.preview_url, true);
                         showToast('מנגן תצוגה מקדימה (Spotify SDK לא זמין)', 'info');
                     } else {
@@ -141,9 +149,11 @@ export const MusicProvider = ({ children }) => {
                     const errorMsg = err.message || 'לא ניתן לנגן את הרצועה';
                     setPlaybackError(`שגיאת Spotify: ${errorMsg}`);
                     showToast(errorMsg, 'error');
+                    setIsPlaying(false);
                 }
             } else {
                 try {
+                    setIsPlaying(true);
                     const isBlob = !!(song.isLocalDeviceFile && song.file_blob_url);
                     const path = isBlob ? song.file_blob_url : song.file_path;
                     await playLocalPath(path, isBlob);
@@ -151,6 +161,7 @@ export const MusicProvider = ({ children }) => {
                     console.error('Audio play failed:', playError);
                     setPlaybackError('שגיאה בנגינת הקובץ.');
                     showToast('שגיאה בנגינת הקובץ', 'error');
+                    setIsPlaying(false);
                 }
             }
 

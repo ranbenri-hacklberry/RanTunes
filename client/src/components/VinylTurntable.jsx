@@ -16,7 +16,7 @@ const getCoverUrl = (localPath) => {
  * Simplified Vinyl Turntable Component
  * Shows a spinning vinyl record with album art in center
  */
-const VinylTurntable = ({ song, isPlaying, albumArt, onTogglePlay }) => {
+const VinylTurntable = ({ song, isPlaying, albumArt, onTogglePlay, hideInfo = false }) => {
     const coverUrl = getCoverUrl(albumArt);
 
     return (
@@ -66,7 +66,7 @@ const VinylTurntable = ({ song, isPlaying, albumArt, onTogglePlay }) => {
             </div>
 
             {/* Song info */}
-            {song && (
+            {song && !hideInfo && (
                 <div className="vinyl-info">
                     <p className="vinyl-title">{song.title}</p>
                     <p className="vinyl-artist">{song.artist?.name || song.album?.name || ''}</p>
