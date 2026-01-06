@@ -17,6 +17,7 @@ import MusicPlayer from '@/components/MusicPlayer';
 import PlaylistBuilder from './components/PlaylistBuilder';
 import DirectoryScanner from './components/DirectoryScanner';
 import SpotifyAlbumSearch from './components/SpotifyAlbumSearch';
+import SpotifyPlaylistSearch from './components/SpotifyPlaylistSearch';
 import SpotifyService from '@/lib/spotifyService';
 import { supabase } from '@/lib/supabase';
 import '@/styles/music.css';
@@ -44,6 +45,7 @@ const MusicPageContent = () => {
         refreshAll,
         addSpotifyAlbum,
         removeSpotifyAlbum,
+        addSpotifyPlaylist,
         scanMusicDirectory,
         fetchAlbumSongs,
         fetchPlaylists,
@@ -74,6 +76,7 @@ const MusicPageContent = () => {
 
     // Spotify & Music Source State
     const [showSpotifySearch, setShowSpotifySearch] = useState(false);
+    const [showSpotifyPlaylistSearch, setShowSpotifyPlaylistSearch] = useState(false);
     const [isSpotifyConnected, setIsSpotifyConnected] = useState(false);
     const [showDiskPopup, setShowDiskPopup] = useState(false);
     const [musicSource, setMusicSource] = useState(() => {
@@ -497,9 +500,9 @@ const MusicPageContent = () => {
 
                                 {activeTab === 'playlists' && (
                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                        <div onClick={() => setShowPlaylistBuilder(true)} className="music-playlist-card p-6 cursor-pointer border-2 border-dashed border-white/20 flex flex-col items-center justify-center text-center aspect-square rounded-2xl">
-                                            <Sparkles className="w-8 h-8 text-purple-400 mb-2" />
-                                            <h3 className="text-white font-bold">פלייליסט חכם</h3>
+                                        <div onClick={() => setShowSpotifyPlaylistSearch(true)} className="music-playlist-card p-6 cursor-pointer border-2 border-dashed border-white/20 flex flex-col items-center justify-center text-center aspect-square rounded-2xl hover:border-green-500/50 hover:bg-white/5 transition-all">
+                                            <svg viewBox="0 0 24 24" className="w-10 h-10 text-green-400 mb-2 fill-current"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" /></svg>
+                                            <h3 className="text-white font-bold">ייבוא מ-Spotify</h3>
                                         </div>
                                         {filteredPlaylists.map(playlist => (
                                             <div key={playlist.id} className="music-glass rounded-2xl overflow-hidden group relative">
@@ -538,6 +541,16 @@ const MusicPageContent = () => {
                         userAlbumIds={albums.filter(a => a.folder_path?.startsWith('spotify:album:')).map(a => a.folder_path.replace('spotify:album:', ''))}
                         onAddAlbum={handleAddSpotifyAlbum}
                         onRemoveAlbum={removeSpotifyAlbum}
+                    />
+                )}
+                {showSpotifyPlaylistSearch && (
+                    <SpotifyPlaylistSearch
+                        onClose={() => setShowSpotifyPlaylistSearch(false)}
+                        userPlaylistIds={playlists.map(p => p.id)}
+                        onAddPlaylist={async (playlist, tracks) => {
+                            await addSpotifyPlaylist(playlist, tracks);
+                            setShowSpotifyPlaylistSearch(false);
+                        }}
                     />
                 )}
                 {showDiskPopup && (

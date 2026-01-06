@@ -302,6 +302,124 @@ export const useAlbums = () => {
         }
     }, [fetchAlbums]);
 
+    // Add Spotify Playlist to library
+    const addSpotifyPlaylist = useCallback(async (spotifyPlaylist, tracks = []) => {
+        try {
+            setIsLoading(true);
+            const userId = currentUser?.id;
+            if (!userId) throw new Error('User not authenticated');
+
+            console.log('➕ Adding Spotify playlist:', spotifyPlaylist.name);
+
+            // Create playlist record
+            const { data: playlistData, error: playlistError } = await supabase
+                .from('rantunes_playlists')
+                .insert({
+                    user_id: userId,
+                    name: spotifyPlaylist.name,
+                    description: spotifyPlaylist.description || null,
+                    cover_url: spotifyPlaylist.images?.[0]?.url || null,
+                    is_public: false
+                })
+                .select()
+                .single();
+
+            if (playlistError) throw playlistError;
+
+            // Add tracks to playlist
+            if (tracks.length > 0) {
+                const businessId = currentUser?.business_id || null;
+
+                // First, ensure all songs exist in rantunes_songs
+                for (let i = 0; i < tracks.length; i++) {
+                    const track = tracks[i];
+                    if (!track?.uri) continue;
+
+                    // Get or create artist
+                    const artistName = track.artists?.[0]?.name || 'אמן לא ידוע';
+                    let artistQuery = supabase
+                        .from('rantunes_artists')
+                        .select('id')
+                        .eq('name', artistName);
+
+                    if (businessId) {
+                        artistQuery = artistQuery.eq('business_id', businessId);
+                    } else {
+                        artistQuery = artistQuery.is('business_id', null);
+                    }
+
+                    let { data: artistData } = await artistQuery.maybeSingle();
+
+                    if (!artistData) {
+                        const { data: newArtist } = await supabase
+                            .from('rantunes_artists')
+                            .insert({ name: artistName, business_id: businessId })
+                            .select('id')
+                            .single();
+                        artistData = newArtist;
+                    }
+
+                    // Check if song already exists
+                    let songQuery = supabase
+                        .from('rantunes_songs')
+                        .select('id')
+                        .eq('file_path', track.uri);
+
+                    if (businessId) {
+                        songQuery = songQuery.eq('business_id', businessId);
+                    } else {
+                        songQuery = songQuery.is('business_id', null);
+                    }
+
+                    let { data: songData } = await songQuery.maybeSingle();
+
+                    if (!songData) {
+                        // Create song
+                        const { data: newSong } = await supabase
+                            .from('rantunes_songs')
+                            .insert({
+                                title: track.name,
+                                artist_id: artistData?.id,
+                                track_number: i + 1,
+                                duration_seconds: Math.round((track.duration_ms || 0) / 1000),
+                                file_path: track.uri,
+                                file_name: track.name,
+                                business_id: businessId
+                            })
+                            .select('id')
+                            .single();
+                        songData = newSong;
+                    }
+
+                    // Add song to playlist
+                    if (songData?.id) {
+                        await supabase
+                            .from('rantunes_playlist_songs')
+                            .insert({
+                                playlist_id: playlistData.id,
+                                song_id: songData.id,
+                                song_title: track.name,
+                                song_artist: artistName,
+                                song_cover_url: track.album?.images?.[0]?.url || null,
+                                position: i + 1
+                            });
+                    }
+                }
+
+                console.log(`✅ Added ${tracks.length} tracks to playlist: ${spotifyPlaylist.name}`);
+            }
+
+            await fetchPlaylists();
+            return playlistData;
+        } catch (err) {
+            console.error('Error adding Spotify playlist:', err);
+            setError(err.message);
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [currentUser, fetchPlaylists]);
+
     // Add song to playlist
     const addSongToPlaylist = useCallback(async (playlistId, songId) => {
         try {
@@ -451,6 +569,7 @@ export const useAlbums = () => {
         fetchFavoritesSongs,
         addSpotifyAlbum,
         removeSpotifyAlbum,
+        addSpotifyPlaylist,
         addSongToPlaylist,
         removePlaylistSong,
         deletePlaylist,

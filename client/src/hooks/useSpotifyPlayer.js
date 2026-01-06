@@ -171,9 +171,10 @@ export function useSpotifyPlayer() {
         return !!state;
     };
 
-    // Play a specific track
-    const play = useCallback(async (spotifyUri, positionMs = 0) => {
+    // Play a specific track (optionally with a queue of tracks for continuous playback)
+    const play = useCallback(async (spotifyUri, positionMs = 0, allUris = null) => {
         console.log('🎵 [SpotifyPlayer] play() called with URI:', spotifyUri);
+        console.log('🎵 [SpotifyPlayer] Queue size:', allUris?.length || 1);
         console.log('🎵 [SpotifyPlayer] Current deviceId:', deviceId);
         console.log('🎵 [SpotifyPlayer] isReady:', isReady);
 
@@ -215,7 +216,19 @@ export function useSpotifyPlayer() {
                 await new Promise(resolve => setTimeout(resolve, 1500));
             }
 
-            const body = { uris: [spotifyUri], position_ms: positionMs };
+            // If we have a full playlist, send all URIs so Spotify will auto-play next
+            let body;
+            if (allUris && allUris.length > 1) {
+                const offset = allUris.indexOf(spotifyUri);
+                body = {
+                    uris: allUris,
+                    offset: { position: offset >= 0 ? offset : 0 },
+                    position_ms: positionMs
+                };
+                console.log('🎵 [SpotifyPlayer] Playing with queue, starting at position:', offset);
+            } else {
+                body = { uris: [spotifyUri], position_ms: positionMs };
+            }
             console.log('🎵 [SpotifyPlayer] Sending play request with body:', JSON.stringify(body));
 
             const playResponse = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {

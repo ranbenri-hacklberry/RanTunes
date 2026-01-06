@@ -163,11 +163,18 @@ export const MusicProvider = ({ children }) => {
                 console.log('🎧 [MusicContext] Attempting Spotify playback...');
                 console.log('🎧 [MusicContext] SDK Ready?', sdk.isReady, 'Device ID?', sdk.deviceId);
 
+                // Build queue of all Spotify track URIs for continuous playback
+                const currentPlaylist = playlistSongs || playlist;
+                const allSpotifyUris = currentPlaylist
+                    .filter(s => s.file_path?.startsWith('spotify:track:') && (s.myRating || 0) !== 1)
+                    .map(s => s.file_path);
+                console.log('🎧 [MusicContext] Queue URIs:', allSpotifyUris.length);
+
                 // If Spotify track, use SDK if ready, or fallback to remote
                 try {
                     if (sdk.isReady && sdk.deviceId) {
                         console.log('🎧 [MusicContext] ✅ Playing via SDK device:', sdk.deviceId);
-                        await sdk.play(song.file_path);
+                        await sdk.play(song.file_path, 0, allSpotifyUris);
                         console.log('🎧 [MusicContext] sdk.play() completed');
                     } else if (song.preview_url) {
                         console.log('🎧 [MusicContext] ⚠️ SDK not ready, falling back to preview_url:', song.preview_url);
