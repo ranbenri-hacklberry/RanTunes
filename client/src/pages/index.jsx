@@ -415,16 +415,18 @@ const MusicPageContent = () => {
 
                     {currentSong && (
                         <>
-                            {/* Player Controls */}
+                            {/* Player Controls (RTL Swapped) */}
                             <div className="flex items-center gap-4 mt-4" dir="ltr">
-                                <button onClick={handlePrevious} className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform">
-                                    <SkipBack className="w-5 h-5 text-white" />
+                                {/* Next (Left) */}
+                                <button onClick={handleNext} className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform">
+                                    <SkipForward className="w-5 h-5 text-white transform scale-x-[-1]" />
                                 </button>
                                 <button onClick={togglePlay} className="w-16 h-16 rounded-full music-gradient-purple flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
-                                    {isPlaying ? <Pause className="w-7 h-7 text-white" /> : <Play className="w-7 h-7 text-white fill-white mr-[-3px]" />}
+                                    {isPlaying ? <Pause className="w-7 h-7 text-white" /> : <Play className="w-7 h-7 text-white fill-white transform scale-x-[-1] ml-[-3px]" />}
                                 </button>
-                                <button onClick={handleNext} className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform">
-                                    <SkipForward className="w-5 h-5 text-white" />
+                                {/* Previous (Right) */}
+                                <button onClick={handlePrevious} className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform">
+                                    <SkipBack className="w-5 h-5 text-white transform scale-x-[-1]" />
                                 </button>
                             </div>
 

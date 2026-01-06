@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, SkipBack, ThumbsUp, ThumbsDown, Music } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, ThumbsUp, ThumbsDown, Music } from 'lucide-react';
 import { useMusic } from '@/context/MusicContext';
 
 /**
