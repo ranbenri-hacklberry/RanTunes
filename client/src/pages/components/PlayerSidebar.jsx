@@ -1,0 +1,81 @@
+import React from 'react';
+import { Music, ThumbsUp, ThumbsDown, Play, Pause, SkipForward, SkipBack } from 'lucide-react';
+import VinylTurntable from '@/components/VinylTurntable';
+
+const PlayerSidebar = ({
+    currentSong,
+    isPlaying,
+    togglePlay,
+    handleNext,
+    handlePrevious,
+    rateSong
+}) => {
+    return (
+        <div className="w-[320px] shrink-0 border-l border-white/10 flex flex-col items-center p-6 bg-black/20 overflow-y-auto music-scrollbar">
+            {currentSong ? (
+                <>
+                    <VinylTurntable
+                        currentSong={currentSong}
+                        isPlaying={isPlaying}
+                    />
+
+                    {/* Main Controls */}
+                    <div className="flex items-center gap-6 mt-8">
+                        <button
+                            onClick={handlePrevious}
+                            className="p-3 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all transform hover:scale-110"
+                        >
+                            <SkipBack className="w-5 h-5" />
+                        </button>
+
+                        <button
+                            onClick={togglePlay}
+                            className="w-16 h-16 rounded-full music-gradient-purple flex items-center justify-center text-white shadow-xl transform active:scale-95 hover:scale-105 transition-all"
+                        >
+                            {isPlaying ? <Pause className="w-8 h-8 fill-white" /> : <Play className="w-8 h-8 fill-white ml-1" />}
+                        </button>
+
+                        <button
+                            onClick={handleNext}
+                            className="p-3 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all transform hover:scale-110"
+                        >
+                            <SkipForward className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Like/Dislike Buttons */}
+                    <div className="flex items-center gap-6 mt-6">
+                        <button
+                            onClick={() => rateSong(currentSong?.id, currentSong?.myRating === 1 ? 0 : 1)}
+                            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all transform hover:scale-110
+                                ${currentSong?.myRating === 1
+                                    ? 'bg-red-500/30 text-red-400 ring-2 ring-red-400/50'
+                                    : 'music-glass text-white/50 hover:text-red-400'}`}
+                            title="לא אהבתי"
+                        >
+                            <ThumbsDown className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => rateSong(currentSong?.id, currentSong?.myRating === 5 ? 0 : 5)}
+                            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all transform hover:scale-110
+                                ${currentSong?.myRating === 5
+                                    ? 'bg-green-500/30 text-green-400 ring-2 ring-green-400/50'
+                                    : 'music-glass text-white/50 hover:text-green-400'}`}
+                            title="אהבתי"
+                        >
+                            <ThumbsUp className="w-5 h-5" />
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <div className="text-center mt-8 bg-black/20 p-6 rounded-3xl backdrop-blur-sm border border-white/5 max-w-[280px]">
+                    <Music className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                    <p className="text-white/60 font-medium">בחר שיר כדי להתחיל לנגן</p>
+                    <p className="text-white/30 text-sm mt-1">האלבומים שלך מופיעים מצד ימין</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default PlayerSidebar;

@@ -2,7 +2,9 @@
 -- Creates a table for sharing music playback state between RanTunes and iCaffe
 -- Current playback state (one row per user)
 CREATE TABLE IF NOT EXISTS music_current_playback (
-    user_id UUID PRIMARY KEY REFERENCES rantunes_users(id) ON DELETE CASCADE,
+    user_email TEXT PRIMARY KEY,
+    user_id UUID,
+    -- Optional: link back to original system ID
     song_id TEXT,
     song_title TEXT,
     artist_name TEXT,
