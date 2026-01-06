@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import MobileNavbar from './components/MobileNavbar';
-// import MobileMiniPlayer from './components/MobileMiniPlayer'; // To be implemented
-// import MobileFullPlayer from './components/MobileFullPlayer'; // To be implemented
+import MobileMiniPlayer from './components/MobileMiniPlayer';
+import MobileFullPlayer from './components/MobileFullPlayer';
 
 const MobileLayout = () => {
     // This will host the Full Player state later
@@ -31,8 +32,6 @@ const MobileLayout = () => {
     );
 };
 
-import { AnimatePresence } from 'framer-motion';
-import MobileMiniPlayer from './components/MobileMiniPlayer';
-import MobileFullPlayer from './components/MobileFullPlayer';
+
 
 export default MobileLayout;
