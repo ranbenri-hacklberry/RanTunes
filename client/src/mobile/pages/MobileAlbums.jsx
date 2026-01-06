@@ -159,12 +159,12 @@ const MobileAlbums = () => {
         <div className="p-4">
             <h1 className="text-2xl font-bold mb-6 mt-2 text-white">אלבומים</h1>
 
-            {/* Music Source Selection (if not selected) */}
-            {!musicSource && albums.length === 0 && (
+            {/* Spotify Login - Show when NOT connected */}
+            {!isSpotifyConnected && (
                 <div className="flex flex-col gap-4 mb-6">
                     <button
                         onClick={() => handleSelectMusicSource('spotify')}
-                        className="flex items-center gap-4 p-4 bg-green-500/10 border border-green-500/30 rounded-2xl"
+                        className="flex items-center gap-4 p-4 bg-green-500/10 border border-green-500/30 rounded-2xl active:scale-95 transition-transform"
                     >
                         <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
                             <svg viewBox="0 0 24 24" className="w-7 h-7 text-black fill-current">
@@ -173,7 +173,7 @@ const MobileAlbums = () => {
                         </div>
                         <div className="text-right flex-1">
                             <h3 className="text-white font-bold text-lg">התחבר ל-Spotify</h3>
-                            <p className="text-green-400/70 text-sm">נגן מוזיקה מ-Spotify Premium</p>
+                            <p className="text-green-400/70 text-sm">נדרש Spotify Premium להשמעה</p>
                         </div>
                     </button>
                 </div>
