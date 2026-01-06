@@ -3,6 +3,17 @@ import { supabase } from '@/lib/supabase';
 import { useRanTunesAuth } from './RanTunesAuthContext';
 import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
 
+/**
+ * @typedef {Object} Song
+ * @property {string} id - Unique song ID
+ * @property {string} title - Song title
+ * @property {string} file_path - Path to audio file or Spotify URI
+ * @property {string} [preview_url] - Spotify preview URL
+ * @property {Object} [artist] - Artist info
+ * @property {Object} [album] - Album info
+ * @property {number} [myRating] - User's rating (1=dislike, 5=like)
+ */
+
 const MusicContext = createContext(null);
 
 // Get base URL for music files from backend
@@ -28,21 +39,14 @@ export const MusicProvider = ({ children }) => {
     const [shuffle, setShuffle] = useState(false);
     const [repeat, setRepeat] = useState('none'); // none, one, all
 
-    // Loading states
+    // Loading and error states
     const [isLoading, setIsLoading] = useState(false);
+    const [playbackError, setPlaybackError] = useState(null);
 
     // Spotify Player Hook
     const sdk = useSpotifyPlayer();
 
-    // Log SDK state changes
-    useEffect(() => {
-        console.log('🎧 [MusicContext] SDK State Updated:', {
-            isReady: sdk.isReady,
-            deviceId: sdk.deviceId,
-            error: sdk.error,
-            isPlaying: sdk.isPlaying
-        });
-    }, [sdk.isReady, sdk.deviceId, sdk.error, sdk.isPlaying]);
+    // SDK state sync (silent - no console output for production)
 
     // Sync SDK state with context state - ONLY when on a Spotify song
     useEffect(() => {
@@ -159,6 +163,7 @@ export const MusicProvider = ({ children }) => {
         }
 
         setIsLoading(true);
+        setPlaybackError(null); // Clear previous errors
 
         try {
             // Detect if it's a Spotify track
@@ -186,7 +191,7 @@ export const MusicProvider = ({ children }) => {
                         await SpotifyService.play({ uris: [song.file_path] });
                     }
                 } catch (err) {
-                    console.error('Spotify playback failed:', err.message);
+                    setPlaybackError(`לא ניתן לנגן: ${err.message || 'שגיאה לא ידועה'}`);
                     // Don't throw - gracefully continue
                 }
                 setIsPlaying(true);
@@ -500,6 +505,7 @@ export const MusicProvider = ({ children }) => {
         shuffle,
         repeat,
         isLoading,
+        playbackError,
 
         // Actions
         playSong,
@@ -515,6 +521,7 @@ export const MusicProvider = ({ children }) => {
         setShuffle,
         setRepeat,
         setPlaylist,
+        clearError: () => setPlaybackError(null),
 
         // Refs
         audioRef
