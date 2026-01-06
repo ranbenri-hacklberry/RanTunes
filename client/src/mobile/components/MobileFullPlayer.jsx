@@ -62,29 +62,38 @@ const MobileFullPlayer = ({ onClose }) => {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 top-0 bottom-16 z-40 bg-[#000000] flex flex-col overflow-hidden"
+            className="fixed inset-x-0 top-0 bottom-16 z-40 flex flex-col overflow-hidden"
+            style={{
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+            }}
             dir={direction}
         >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 pt-12">
-                <button onClick={onClose} className="text-white">
+            <div className="flex items-center justify-between p-4 pt-10 shrink-0">
+                <button onClick={onClose} className="text-white/80 hover:text-white">
                     <ChevronDown size={28} />
                 </button>
                 <span className="text-xs font-bold tracking-widest uppercase text-white/50">{labels.nowPlaying}</span>
-                <button className="text-white">
+                <button className="text-white/80 hover:text-white">
                     <MoreHorizontal size={24} />
                 </button>
             </div>
 
-            {/* Vinyl Area */}
-            <div className="flex-1 flex items-center justify-center p-8 relative overflow-hidden">
-                {/* Background Blur */}
-                <div className="absolute inset-0 z-0 opacity-30 blur-3xl scale-150">
+            {/* Vinyl Area - with album art blur background */}
+            <div className="flex-1 flex items-center justify-center relative overflow-hidden min-h-0">
+                {/* Background Blur Effect */}
+                <div className="absolute inset-0 z-0">
                     {currentSong.album?.cover_url && (
-                        <img src={currentSong.album.cover_url} className="w-full h-full object-cover" />
+                        <img
+                            src={currentSong.album.cover_url}
+                            className="w-full h-full object-cover opacity-20 blur-3xl scale-125"
+                            alt=""
+                        />
                     )}
                 </div>
-                <div className="relative z-10 w-full aspect-square max-w-sm">
+
+                {/* Vinyl - scaled to fit without clipping */}
+                <div className="relative z-10 flex items-center justify-center" style={{ transform: 'scale(0.85)' }}>
                     <VinylTurntable
                         song={currentSong}
                         isPlaying={isPlaying}
