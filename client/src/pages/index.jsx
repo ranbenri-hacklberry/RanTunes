@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Music, Disc, ListMusic, Search, Upload, RefreshCw,
@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMusic } from '@/context/MusicContext';
 import { useAlbums } from '@/hooks/useAlbums';
-import { useAuth } from '@/context/AuthContext';
+import { useRanTunesAuth } from '@/context/RanTunesAuthContext';
 import AlbumCard from '@/components/AlbumCard';
 import VinylTurntable from '@/components/VinylTurntable';
 import SongRow from '@/components/SongRow';
@@ -33,7 +33,7 @@ const TABS = [
 
 const MusicPageContent = () => {
     const navigate = useNavigate();
-    const { currentUser } = useAuth();
+    const { user: currentUser } = useRanTunesAuth();
 
     const {
         albums,
@@ -251,10 +251,12 @@ const MusicPageContent = () => {
     const handleMiniPlayerClick = async () => {
         if (!currentSong) return;
 
-        // If we already have a selected collection, it might be the one
-        if (selectedAlbum) return;
+        // If it's already selected and visible, no need to do anything
+        if (selectedAlbum && currentAlbumSongs.some(s => s.id === currentSong.id)) {
+            return;
+        }
 
-        // Find album associated with this song
+        // 1. Check if it's an album song
         if (currentSong.album_id) {
             const album = albums.find(a => a.id === currentSong.album_id);
             if (album) {
@@ -263,10 +265,18 @@ const MusicPageContent = () => {
             }
         }
 
-        // If it's a Spotify song but we don't have local album, 
-        // we can still synthesize a minimal album view if we wanted, 
-        // but for now let's check favorites if that's where it came from.
+        // 2. Check if it belongs to a playlist
+        if (currentSong.playlist_id) {
+            const playlist = playlists.find(p => p.id === currentSong.playlist_id);
+            if (playlist) {
+                setSelectedAlbum({ ...playlist, isPlaylist: true, artist: { name: 'פלייליסט' } });
+                return;
+            }
+        }
+
+        // 3. Check favorites
         if (favoriteSongs.some(s => s.id === currentSong.id)) {
+            setSelectedAlbum(null);
             setActiveTab('favorites');
             return;
         }
@@ -296,7 +306,7 @@ const MusicPageContent = () => {
                             <Music className="w-6 h-6 text-purple-400" />
                             <h1 className="text-white text-xl font-bold">RanTunes</h1>
                         </div>
-                        <span className="text-white/30 text-xs mr-8">v0.9.11</span>
+                        <span className="text-white/30 text-xs mr-8">v0.9.13</span>
                     </div>
                     <div className="hidden lg:block">
                         <MiniMusicPlayer onClick={handleMiniPlayerClick} />
@@ -698,7 +708,7 @@ const MusicPageContent = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div >
+        </div>
     );
 };
 
