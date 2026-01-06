@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRanTunesAuth } from './RanTunesAuthContext';
 import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
@@ -42,6 +42,11 @@ export const MusicProvider = ({ children }) => {
     // Loading and error states
     const [isLoading, setIsLoading] = useState(false);
     const [playbackError, setPlaybackError] = useState(null);
+
+    // Memoized list of playable songs (excludes disliked)
+    const playableSongs = useMemo(() =>
+        playlist.filter(s => (s?.myRating || 0) !== 1),
+        [playlist]);
 
     // Spotify Player Hook
     const sdk = useSpotifyPlayer();
@@ -359,7 +364,7 @@ export const MusicProvider = ({ children }) => {
 
         setPlaylistIndex(nextIndex);
         playSong(playlist[nextIndex]);
-    }, [playlist, playlistIndex, shuffle, repeat, currentSong, currentTime, duration, logSkip, playSong]);
+    }, [playlist, playlistIndex, shuffle, repeat, currentSong, currentTime, duration, logSkip, playSong, playableSongs]);
 
     // Keep ref in sync with handleNext
     useEffect(() => {
@@ -495,6 +500,7 @@ export const MusicProvider = ({ children }) => {
         repeat,
         isLoading,
         playbackError,
+        playableSongs, // Memoized list of non-disliked songs
 
         // Actions
         playSong,
