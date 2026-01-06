@@ -111,8 +111,54 @@ const App = () => {
         return <ErrorBoundary><AuthScreen /></ErrorBoundary>;
     }
 
-    // Show music player if authenticated
-    return <ErrorBoundary><MusicPage /></ErrorBoundary>;
+    // Music App with Mobile Routing
+    return (
+        <ErrorBoundary>
+            <React.Suspense fallback={<div className="min-h-screen bg-black" />}>
+                <MobileRouterWrapper />
+            </React.Suspense>
+        </ErrorBoundary>
+    );
+};
+
+// Internal wrapper to handle routing logic cleanly
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import MobileLayout from './mobile/MobileLayout';
+import MobileHome from './mobile/pages/MobileHome';
+
+const MobileRouterWrapper = () => {
+    // We need to determine if we should redirect to mobile
+    // This is a bit tricky with existing structure not using Router at root efficiently
+    // But let's wrap everything in BrowserRouter here since App didn't have it before?
+    // Actually, MusicPage (index.jsx) likely doesn't use Router, it's a single page app logic.
+    // If we Introduce Router, we must ensure existing MusicPage doesn't break if it expects props or context.
+
+    return (
+        <BrowserRouter>
+            <AppRoutes />
+        </BrowserRouter>
+    );
+};
+
+const AppRoutes = () => {
+    const isMobileWidth = window.innerWidth < 768; // Simple initial check
+    // We could add a resize listener but usually reload on dimension change or just initial load is enough for "Mobile Version" separation
+
+    return (
+        <Routes>
+            {/* Mobile Routes */}
+            <Route path="/mobile" element={<MobileLayout />}>
+                <Route index element={<MobileHome />} />
+                <Route path="search" element={<div className="p-10 text-white">Search Placeholder</div>} />
+                <Route path="library" element={<div className="p-10 text-white">Library Placeholder</div>} />
+            </Route>
+
+            {/* Desktop / Default Route */}
+            <Route path="/*" element={
+                isMobileWidth ? <Navigate to="/mobile" replace /> : <MusicPage />
+            } />
+        </Routes>
+    );
 };
 
 export default App;
