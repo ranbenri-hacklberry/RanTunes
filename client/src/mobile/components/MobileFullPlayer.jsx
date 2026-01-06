@@ -62,7 +62,7 @@ const MobileFullPlayer = ({ onClose }) => {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-50 bg-[#000000] flex flex-col"
+            className="fixed inset-x-0 top-0 bottom-16 z-40 bg-[#000000] flex flex-col overflow-hidden"
             dir={direction}
         >
             {/* Header */}

@@ -162,6 +162,7 @@ export const useAlbums = () => {
 
     // Fetch favorites (songs rated 5)
     // Note: Uses two queries because rantunes_ratings may not have FK to rantunes_songs
+    // song_id can be either UUID (id) or Spotify URI (file_path)
     const fetchFavoritesSongs = useCallback(async () => {
         if (!currentUser?.id) return [];
         try {
@@ -175,26 +176,44 @@ export const useAlbums = () => {
             if (ratingsError) throw ratingsError;
             if (!ratings || ratings.length === 0) return [];
 
-            // Step 2: Get songs by IDs
+            // Step 2: Separate UUIDs from Spotify URIs/IDs
             const songIds = ratings.map(r => r.song_id).filter(Boolean);
             if (songIds.length === 0) return [];
 
-            const { data: songs, error: songsError } = await supabase
-                .from('rantunes_songs')
-                .select(`
-                    *,
-                    album:rantunes_albums(id, name, cover_url),
-                    artist:rantunes_artists(id, name)
-                `)
-                .in('id', songIds);
+            // Proper UUID format: 8-4-4-4-12 hex characters
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const uuids = songIds.filter(id => uuidRegex.test(id));
+            const spotifyIds = songIds.filter(id => !uuidRegex.test(id));
 
-            if (songsError) throw songsError;
+            // Step 3: Query songs by ID or file_path
+            let songs = [];
+
+            if (uuids.length > 0) {
+                const { data } = await supabase
+                    .from('rantunes_songs')
+                    .select(`*, album:rantunes_albums(id, name, cover_url), artist:rantunes_artists(id, name)`)
+                    .in('id', uuids);
+                if (data) songs.push(...data);
+            }
+
+            if (spotifyIds.length > 0) {
+                const { data } = await supabase
+                    .from('rantunes_songs')
+                    .select(`*, album:rantunes_albums(id, name, cover_url), artist:rantunes_artists(id, name)`)
+                    .in('file_path', spotifyIds);
+                if (data) songs.push(...data);
+            }
 
             // Combine rating with song data
             const ratingMap = {};
-            ratings.forEach(r => { ratingMap[r.song_id] = r.rating; });
+            ratings.forEach(r => {
+                ratingMap[r.song_id] = r.rating;
+            });
 
-            return (songs || []).map(s => ({ ...s, myRating: ratingMap[s.id] || 5 }));
+            return songs.map(s => ({
+                ...s,
+                myRating: ratingMap[s.id] || ratingMap[s.file_path] || 5
+            }));
         } catch (err) {
             console.error('Error fetching favorites:', err);
             return [];

@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Disc, ListMusic, User, Heart, Music } from 'lucide-react';
-
-const TABS = [
-    { id: 'albums', label: 'אלבומים', icon: Disc },
-    { id: 'playlists', label: 'פלייליסטים', icon: ListMusic },
-    { id: 'player', label: 'נגן', icon: Music, isCenter: true },
-    { id: 'artists', label: 'אמנים', icon: User },
-    { id: 'favorites', label: 'מועדפים', icon: Heart },
-];
+import { isSystemRTL } from '@/lib/localeUtils';
 
 const MobileNavbar = ({ activeTab, onTabChange }) => {
+    const rtl = useMemo(() => isSystemRTL(), []);
+
+    const TABS = useMemo(() => [
+        { id: 'albums', label: rtl ? 'אלבומים' : 'Albums', icon: Disc },
+        { id: 'playlists', label: rtl ? 'פלייליסטים' : 'Playlists', icon: ListMusic },
+        { id: 'player', label: rtl ? 'נגן' : 'Player', icon: Music, isCenter: true },
+        { id: 'artists', label: rtl ? 'אמנים' : 'Artists', icon: User },
+        { id: 'favorites', label: rtl ? 'מועדפים' : 'Favorites', icon: Heart },
+    ], [rtl]);
+
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a] border-t border-white/10 safe-area-bottom">
             <div className="flex items-center justify-around h-16">
