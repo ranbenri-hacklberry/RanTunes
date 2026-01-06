@@ -152,19 +152,35 @@ export const useAlbums = () => {
             setIsLoading(true);
             const businessId = currentUser?.business_id || null;
 
-            // 1. Ensure artist exists
+            // 1. Ensure artist exists (or get existing)
             const artistName = spotifyAlbum.artists?.[0]?.name || 'אמן לא ידוע';
-            const { data: artistData, error: artistError } = await supabase
-                .from('rantunes_artists')
-                .upsert({
-                    name: artistName,
-                    business_id: businessId,
-                    folder_path: `spotify:artist:${spotifyAlbum.artists?.[0]?.id}`
-                }, { onConflict: 'name, business_id' })
-                .select()
-                .single();
 
-            if (artistError) throw artistError;
+            // First try to find existing artist
+            let artistData;
+            const { data: existingArtist } = await supabase
+                .from('rantunes_artists')
+                .select('*')
+                .eq('name', artistName)
+                .eq('business_id', businessId)
+                .maybeSingle();
+
+            if (existingArtist) {
+                artistData = existingArtist;
+            } else {
+                // Create new artist (without folder_path since column doesn't exist)
+                const { data: newArtist, error: artistError } = await supabase
+                    .from('rantunes_artists')
+                    .insert({
+                        name: artistName,
+                        business_id: businessId
+                    })
+                    .select()
+                    .single();
+
+                if (artistError) throw artistError;
+                artistData = newArtist;
+            }
+
 
             // 2. Create album record
             const { data: albumData, error: albumError } = await supabase
