@@ -137,7 +137,6 @@ const App = () => {
 // NOTE: BrowserRouter is already in main.jsx, DO NOT add another one here!
 import { Routes, Route, Navigate } from 'react-router-dom';
 import MobileLayout from './mobile/MobileLayout';
-import MobileHome from './mobile/pages/MobileHome';
 
 const MobileRouterWrapper = () => {
     // BrowserRouter is already provided in main.jsx - just render routes
@@ -145,17 +144,12 @@ const MobileRouterWrapper = () => {
 };
 
 const AppRoutes = () => {
-    const isMobileWidth = window.innerWidth < 768; // Simple initial check
-    // We could add a resize listener but usually reload on dimension change or just initial load is enough for "Mobile Version" separation
+    const isMobileWidth = window.innerWidth < 768;
 
     return (
         <Routes>
-            {/* Mobile Routes */}
-            <Route path="/mobile" element={<MobileLayout />}>
-                <Route index element={<MobileHome />} />
-                <Route path="search" element={<div className="p-10 text-white">Search Placeholder</div>} />
-                <Route path="library" element={<div className="p-10 text-white">Library Placeholder</div>} />
-            </Route>
+            {/* Mobile Route - MobileLayout handles all tabs internally */}
+            <Route path="/mobile/*" element={<MobileLayout />} />
 
             {/* Desktop / Default Route */}
             <Route path="/*" element={

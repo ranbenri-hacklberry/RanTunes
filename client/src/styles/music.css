@@ -707,3 +707,22 @@
     transform: scale(0.75);
   }
 }
+
+/* =====================================================
+   MOBILE-SPECIFIC STYLES
+   ===================================================== */
+
+/* Safe area padding for iOS notch/home bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Hide scrollbar but allow scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
