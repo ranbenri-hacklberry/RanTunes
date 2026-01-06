@@ -226,7 +226,7 @@ export const MusicProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [currentUser]);
+    }, [currentUser, sdk.isReady, sdk.deviceId, sdk.play]);
 
     // Play/Pause toggle
     const togglePlay = useCallback(async () => {
