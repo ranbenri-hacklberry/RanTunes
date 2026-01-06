@@ -155,23 +155,22 @@ export const MusicProvider = ({ children }) => {
 
         // Never play disliked songs
         if ((song.myRating || 0) === 1) {
-            if (playlistSongs || playlist.length > 0) {
-                if (playlistSongs) setPlaylist(playlistSongs);
+            if (Array.isArray(playlistSongs) || playlist.length > 0) {
+                if (Array.isArray(playlistSongs)) setPlaylist(playlistSongs);
                 setTimeout(() => handleNextRef.current(), 100);
             }
             return;
         }
 
         setIsLoading(true);
-        setPlaybackError(null); // Clear previous errors
+        setPlaybackError(null);
 
         try {
-            // Detect if it's a Spotify track
             const isSpotifyTrack = song.file_path?.startsWith('spotify:');
+            const currentPlaylist = Array.isArray(playlistSongs) ? playlistSongs : (Array.isArray(playlist) ? playlist : []);
 
             if (isSpotifyTrack) {
                 // Build queue of all Spotify track URIs for continuous playback
-                const currentPlaylist = playlistSongs || playlist;
                 const allSpotifyUris = currentPlaylist
                     .filter(s => s.file_path?.startsWith('spotify:track:') && (s.myRating || 0) !== 1)
                     .map(s => s.file_path);
@@ -190,7 +189,8 @@ export const MusicProvider = ({ children }) => {
                         showToast('מנגן תצוגה מקדימה (Spotify SDK לא זמין)', 'info');
                     } else {
                         // Last resort: try Spotify Web API remote control
-                        const SpotifyService = (await import('@/lib/spotifyService')).default;
+                        const service = await import('@/lib/spotifyService');
+                        const SpotifyService = service.default || service;
                         await SpotifyService.play({ uris: [song.file_path] });
                         setIsPlaying(true);
                         showToast('מנגן דרך Spotify Connect', 'info');
@@ -215,49 +215,30 @@ export const MusicProvider = ({ children }) => {
 
                 try {
                     await audioRef.current.play();
+                    setIsPlaying(true);
                 } catch (playError) {
                     console.error('Audio play failed:', playError);
-                    throw new Error('Failed to play audio. The file may not be available.');
+                    setPlaybackError('שגיאה בנגינת הקובץ - הקובץ עשוי להיות לא זמין.');
+                    showToast('שגיאה בנגינת הקובץ', 'error');
+                    setIsPlaying(false);
                 }
             }
 
             setCurrentSong(song);
 
             // Set playlist if provided
-            if (playlistSongs) {
+            if (Array.isArray(playlistSongs)) {
                 setPlaylist(playlistSongs);
                 const idx = playlistSongs.findIndex(s => s.id === song.id);
                 setPlaylistIndex(idx >= 0 ? idx : 0);
             }
-
-            // Sync playback state to Supabase for iCaffe integration (disabled until table is created)
-            // TODO: Run CREATE_SHARED_PLAYBACK_TABLE.sql in Supabase to enable this
-            /*
-            if (currentUser) {
-                try {
-                    await supabase.from('music_current_playback').upsert({
-                        user_id: currentUser.id,
-                        song_id: String(song.id),
-                        song_title: song.title,
-                        artist_name: song.artist?.name || 'Unknown',
-                        album_name: song.album?.name || '',
-                        cover_url: song.album?.cover_url || null,
-                        spotify_uri: song.file_path?.startsWith('spotify:') ? song.file_path : null,
-                        is_playing: true,
-                        duration_ms: (song.duration_seconds || 0) * 1000,
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'user_id' });
-                } catch (syncErr) {
-                    console.warn('Failed to sync playback state:', syncErr);
-                }
-            }
-            */
         } catch (error) {
             console.error('Error playing song:', error);
+            setPlaybackError(`שגיאה לא צפויה: ${error.message}`);
         } finally {
             setIsLoading(false);
         }
-    }, [currentUser, sdk.isReady, sdk.deviceId, sdk.play]);
+    }, [playlist, sdk.isReady, sdk.deviceId, sdk.play, showToast]);
 
     // Play/Pause toggle
     const togglePlay = useCallback(async () => {

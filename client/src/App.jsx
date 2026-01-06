@@ -1,12 +1,48 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import { useRanTunesAuth } from './context/RanTunesAuthContext';
 import AuthScreen from './pages/AuthScreen';
-
-// Lazy load MusicPage for better performance
-const MusicPage = lazy(() => import('./pages/index.jsx'));
+import MusicPage from './pages/index.jsx';
 
 // Check env vars directly to avoid hoisting issues
 const supabaseConfigMissing = !import.meta.env?.VITE_SUPABASE_URL || !import.meta.env?.VITE_SUPABASE_ANON_KEY;
+
+/**
+ * Error Boundary Component to catch runtime crashes
+ */
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error, errorInfo) {
+        console.error('RanTunes Crash:', error, errorInfo);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-center" dir="rtl">
+                    <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-red-500/30">
+                        <h1 className="text-white text-2xl font-bold mb-4">אופס, משהו השתבש</h1>
+                        <p className="text-slate-400 mb-6">האפליקציה נתקלה בשגיאה לא צפויה.</p>
+                        <pre className="bg-black/50 p-4 rounded-xl text-red-400 text-xs text-left overflow-auto mb-6 max-h-40 font-mono">
+                            {this.state.error?.toString()}
+                        </pre>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="w-full py-3 bg-purple-600 text-white rounded-xl font-bold"
+                        >
+                            נסה לטעון מחדש
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 /**
  * App Component - Routes between Auth and Music based on authentication state
@@ -72,19 +108,11 @@ const App = () => {
 
     // Show auth screen if not authenticated
     if (!isAuthenticated) {
-        return <AuthScreen />;
+        return <ErrorBoundary><AuthScreen /></ErrorBoundary>;
     }
 
     // Show music player if authenticated
-    return (
-        <Suspense fallback={
-            <div className="min-h-screen music-gradient-dark flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
-            </div>
-        }>
-            <MusicPage />
-        </Suspense>
-    );
+    return <ErrorBoundary><MusicPage /></ErrorBoundary>;
 };
 
 export default App;

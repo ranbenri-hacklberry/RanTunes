@@ -61,6 +61,7 @@ const MusicPageContent = () => {
         isPlaying,
         togglePlay,
         handlePrevious,
+        handleNext,
         playlist,
         rateSong,
         toast,
@@ -719,10 +720,10 @@ const MusicPageContent = () => {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 20, scale: 0.9 }}
                             className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-xl border ${toast.type === 'error'
-                                    ? 'bg-red-500/20 border-red-500/30 text-red-200'
-                                    : toast.type === 'success'
-                                        ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-200'
-                                        : 'bg-purple-500/20 border-purple-500/30 text-purple-200'
+                                ? 'bg-red-500/20 border-red-500/30 text-red-200'
+                                : toast.type === 'success'
+                                    ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-200'
+                                    : 'bg-purple-500/20 border-purple-500/30 text-purple-200'
                                 }`}
                         >
                             <div className={`w-2 h-2 rounded-full animate-pulse ${toast.type === 'error' ? 'bg-red-400' : toast.type === 'success' ? 'bg-emerald-400' : 'bg-purple-400'
