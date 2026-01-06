@@ -142,24 +142,15 @@ export const MusicProvider = ({ children }) => {
     // Log skip - simplified version (old tables removed)
     const logSkip = useCallback(async (song, wasEarlySkip) => {
         // Skip logging disabled - old tables don't exist in RanTunes schema
-        // If we want skip tracking, we should update rantunes_ratings table
-        console.log('🎵 Skip logged:', song?.title, wasEarlySkip ? '(early skip)' : '');
+        // Removed console.log for production performance
     }, []);
 
     // Play a song
     const playSong = useCallback(async (song, playlistSongs = null) => {
-        console.log('🎧 [MusicContext] ========== playSong called ==========');
-        console.log('🎧 [MusicContext] Song:', song?.title, song?.file_path);
-        console.log('🎧 [MusicContext] SDK state:', { isReady: sdk.isReady, deviceId: sdk.deviceId, error: sdk.error });
-
-        if (!song) {
-            console.log('🎧 [MusicContext] No song provided, returning');
-            return;
-        }
+        if (!song) return;
 
         // Never play disliked songs
         if ((song.myRating || 0) === 1) {
-            console.log('🎧 [MusicContext] Skipping disliked song:', song.title);
             if (playlistSongs || playlist.length > 0) {
                 if (playlistSongs) setPlaylist(playlistSongs);
                 setTimeout(() => handleNextRef.current(), 100);
@@ -172,37 +163,31 @@ export const MusicProvider = ({ children }) => {
         try {
             // Detect if it's a Spotify track
             const isSpotifyTrack = song.file_path?.startsWith('spotify:');
-            console.log('🎧 [MusicContext] Is Spotify track?', isSpotifyTrack);
 
             if (isSpotifyTrack) {
-                console.log('🎧 [MusicContext] Attempting Spotify playback...');
-                console.log('🎧 [MusicContext] SDK Ready?', sdk.isReady, 'Device ID?', sdk.deviceId);
-
                 // Build queue of all Spotify track URIs for continuous playback
                 const currentPlaylist = playlistSongs || playlist;
                 const allSpotifyUris = currentPlaylist
                     .filter(s => s.file_path?.startsWith('spotify:track:') && (s.myRating || 0) !== 1)
                     .map(s => s.file_path);
-                console.log('🎧 [MusicContext] Queue URIs:', allSpotifyUris.length);
 
-                // If Spotify track, use SDK if ready, or fallback to remote
+                // If Spotify track, use SDK if ready, or fallback to preview
                 try {
                     if (sdk.isReady && sdk.deviceId) {
-                        console.log('🎧 [MusicContext] ✅ Playing via SDK device:', sdk.deviceId);
                         await sdk.play(song.file_path, 0, allSpotifyUris);
-                        console.log('🎧 [MusicContext] sdk.play() completed');
                     } else if (song.preview_url) {
-                        console.log('🎧 [MusicContext] ⚠️ SDK not ready, falling back to preview_url:', song.preview_url);
+                        // Fallback to preview URL if SDK not ready
                         audioRef.current.src = song.preview_url;
                         audioRef.current.load();
                         await audioRef.current.play();
                     } else {
-                        console.log('🎧 [MusicContext] ⚠️ No SDK, no preview. Trying remote control...');
+                        // Last resort: try Spotify Web API remote control
                         const SpotifyService = (await import('@/lib/spotifyService')).default;
                         await SpotifyService.play({ uris: [song.file_path] });
                     }
                 } catch (err) {
-                    console.error('🎧 [MusicContext] ❌ Spotify playback failed:', err);
+                    console.error('Spotify playback failed:', err.message);
+                    // Don't throw - gracefully continue
                 }
                 setIsPlaying(true);
             } else {
@@ -324,7 +309,7 @@ export const MusicProvider = ({ children }) => {
         }
     }, [currentSong, sdk.isReady, sdk.resume]);
 
-    // Next song
+    // Next song with safeguards against infinite loops
     const handleNext = useCallback(() => {
         if (!playlist.length) return;
 
@@ -336,14 +321,18 @@ export const MusicProvider = ({ children }) => {
 
         const isDislikedSong = (s) => (s?.myRating || 0) === 1;
 
+        // Early exit if ALL songs are disliked
+        const playableSongs = playlist.filter(s => !isDislikedSong(s));
+        if (playableSongs.length === 0) {
+            setIsPlaying(false);
+            return;
+        }
+
         let nextIndex;
         if (shuffle) {
-            // try a few times to avoid disliked songs
-            let tries = 0;
-            do {
-                nextIndex = Math.floor(Math.random() * playlist.length);
-                tries += 1;
-            } while (tries < 10 && isDislikedSong(playlist[nextIndex]));
+            // Pick random from playable songs only
+            const randomPlayable = playableSongs[Math.floor(Math.random() * playableSongs.length)];
+            nextIndex = playlist.findIndex(s => s.id === randomPlayable.id);
         } else if (repeat === 'one') {
             nextIndex = playlistIndex;
         } else {
@@ -352,14 +341,13 @@ export const MusicProvider = ({ children }) => {
                 if (repeat === 'all') {
                     nextIndex = 0;
                 } else {
-                    // End of playlist
                     setIsPlaying(false);
                     return;
                 }
             }
         }
 
-        // Skip disliked songs (linear scan)
+        // Skip disliked songs (with guard)
         if (!shuffle && repeat !== 'one') {
             let guard = 0;
             while (guard < playlist.length && isDislikedSong(playlist[nextIndex])) {
