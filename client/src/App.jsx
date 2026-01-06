@@ -30,12 +30,24 @@ class ErrorBoundary extends React.Component {
                         <pre className="bg-black/50 p-4 rounded-xl text-red-400 text-xs text-left overflow-auto mb-6 max-h-40 font-mono">
                             {this.state.error?.toString()}
                         </pre>
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="w-full py-3 bg-purple-600 text-white rounded-xl font-bold"
-                        >
-                            נסה לטעון מחדש
-                        </button>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-500 transition-colors"
+                            >
+                                נסה טעינה מחדש
+                            </button>
+                            <button
+                                onClick={() => {
+                                    localStorage.clear();
+                                    sessionStorage.clear();
+                                    window.location.href = '/';
+                                }}
+                                className="px-6 py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-bold hover:bg-red-500/20 transition-colors"
+                            >
+                                התנתק ואפס
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
