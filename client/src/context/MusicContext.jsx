@@ -219,14 +219,24 @@ export const MusicProvider = ({ children }) => {
                 setPlaylistIndex(idx >= 0 ? idx : 0);
             }
 
-            // Log playback
+            // Sync playback state to Supabase for iCaffe integration
             if (currentUser) {
-                await supabase.from('music_playback_history').insert({
-                    song_id: song.id,
-                    employee_id: currentUser.id,
-                    was_skipped: false,
-                    business_id: currentUser.business_id
-                });
+                try {
+                    await supabase.from('music_current_playback').upsert({
+                        user_id: currentUser.id,
+                        song_id: String(song.id),
+                        song_title: song.title,
+                        artist_name: song.artist?.name || 'Unknown',
+                        album_name: song.album?.name || '',
+                        cover_url: song.album?.cover_url || null,
+                        spotify_uri: song.file_path?.startsWith('spotify:') ? song.file_path : null,
+                        is_playing: true,
+                        duration_ms: (song.duration_seconds || 0) * 1000,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_id' });
+                } catch (syncErr) {
+                    console.warn('Failed to sync playback state:', syncErr);
+                }
             }
         } catch (error) {
             console.error('Error playing song:', error);
