@@ -899,3 +899,83 @@
   border-radius: 2px;
   margin: 0 auto 15px auto;
 }
+
+/* =====================================================
+   MINI-PLAYER STYLE CARD (v1.9)
+   ===================================================== */
+
+/* Updated VU Meter Window to be wider */
+.vu-meter-window {
+  width: 100% !important; /* Force full width in flex container */
+}
+
+/* Card Container */
+.mini-player-card-container {
+  width: 100%;
+  padding: 0 16px; 
+  /* Safe area bottom padding handled by parent */
+}
+
+/* The Card Itself */
+.mini-player-card {
+  background: #282828;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Song Info Area */
+.mini-player-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0; /* meaningful for truncation */
+}
+
+.mini-player-art {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: #333;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.mini-player-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mini-player-title {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-player-artist {
+  color: #b3b3b3;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Action Area (Right) */
+.mini-player-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-left: 12px;
+}

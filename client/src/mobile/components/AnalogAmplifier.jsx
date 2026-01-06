@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Play, Pause, SkipForward, SkipBack } from 'lucide-react';
 
-const AnalogAmplifier = ({ isPlaying, onTogglePlay, onNext, onPrev }) => {
+const AnalogAmplifier = ({ isPlaying }) => {
     const [leftNeedle, setLeftNeedle] = useState(-45);
     const [rightNeedle, setRightNeedle] = useState(-45);
 
@@ -9,22 +9,21 @@ const AnalogAmplifier = ({ isPlaying, onTogglePlay, onNext, onPrev }) => {
         let interval;
         if (isPlaying) {
             interval = setInterval(() => {
-                // Simulate audio levels
-                // Base movement + random jitter
-                // Range: -45 (min) to +20 (max), 0 is 0dB
-                // Most music hovers around -20 to +5
-
+                // Simulate audio levels with "kick" effect
                 const simulateLevel = () => {
-                    const base = Math.random() * 30 - 25; // Random between -25 and +5
-                    // Occasional peak
-                    const drift = Math.random() > 0.8 ? 10 : 0;
-                    return base + drift;
+                    const r = Math.random();
+                    const base = -20 + (r * 15); // Hover around -20 to -5
+
+                    // Kick drum simulation (sudden spike every ~500-800ms probability)
+                    const kick = r > 0.85 ? 15 : 0;
+
+                    return Math.min(5, base + kick); // Cap at +5
                 };
 
                 setLeftNeedle(simulateLevel());
-                // Right channel slightly different for realism
-                setRightNeedle(simulateLevel() + (Math.random() * 4 - 2));
-            }, 100);
+                // Right channel slightly offset
+                setRightNeedle(simulateLevel() + (Math.random() * 6 - 3));
+            }, 80); // Faster update rate for smoother/snappier feel
         } else {
             setLeftNeedle(-45);
             setRightNeedle(-45);
@@ -34,40 +33,29 @@ const AnalogAmplifier = ({ isPlaying, onTogglePlay, onNext, onPrev }) => {
     }, [isPlaying]);
 
     return (
-        <div className="analog-amp-container mx-auto relative">
+        <div className="analog-amp-container mx-auto relative cursor-default select-none">
             {/* Valid HTML/CSS structure matching music.css */}
-            <div className="amp-face relative">
+            <div className="amp-face relative flex justify-between px-4 py-3 gap-6">
                 {/* Screws */}
                 <div className="amp-screw tl"></div>
                 <div className="amp-screw tr"></div>
                 <div className="amp-screw bl"></div>
                 <div className="amp-screw br"></div>
 
-                {/* Left VU Meter */}
-                <VUMeter rotation={leftNeedle} label="LEFT" />
-
-                {/* Center Controls (Retro Style) */}
-                <div className="flex items-center gap-4 px-2 z-20">
-                    <button onClick={onPrev} className="retro-btn retro-btn-md active:scale-95">
-                        <SkipBack size={18} fill="currentColor" />
-                    </button>
-
-                    <button onClick={onTogglePlay} className="retro-btn retro-btn-lg active:scale-95 flex items-center justify-center">
-                        {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
-                    </button>
-
-                    <button onClick={onNext} className="retro-btn retro-btn-md active:scale-95">
-                        <SkipForward size={18} fill="currentColor" />
-                    </button>
+                {/* Left VU Meter - Wider */}
+                <div className="flex-1">
+                    <VUMeter rotation={leftNeedle} label="LEFT CHANNEL" />
                 </div>
 
-                {/* Right VU Meter */}
-                <VUMeter rotation={rightNeedle} label="RIGHT" />
+                {/* Right VU Meter - Wider */}
+                <div className="flex-1">
+                    <VUMeter rotation={rightNeedle} label="RIGHT CHANNEL" />
+                </div>
 
-                {/* Center Badge / Logo Area (Moved up slightly) */}
-                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 flex flex-col items-center pointer-events-none">
-                    <span className="text-[6px] font-bold text-black/70 tracking-widest mb-0.5">STEREO</span>
-                    <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-red-500 shadow-[0_0_5px_rgba(255,0,0,0.8)]' : 'bg-red-900'}`}></div>
+                {/* Center Badge (Absolute) */}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none opacity-80">
+                    <span className="text-[5px] font-bold text-black/70 tracking-widest mb-0.5">STEREO</span>
+                    <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-red-500 shadow-[0_0_6px_rgba(255,0,0,1)]' : 'bg-red-900'}`}></div>
                 </div>
             </div>
         </div>

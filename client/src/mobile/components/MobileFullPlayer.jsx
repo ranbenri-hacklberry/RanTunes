@@ -126,90 +126,104 @@ const MobileFullPlayer = ({ onClose }) => {
                 )}
             </div>
 
-            {/* Main Content: Vinyl + Amplifier */}
-            <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full px-4 -mt-20">
-                {/* Vinyl - Properly Scaled */}
-                <div className="relative z-10 flex items-center justify-center mb-6" style={{ transform: 'scale(1)' }}>
-                    <VinylTurntable
-                        song={currentSong}
-                        isPlaying={isPlaying}
-                        albumArt={currentSong?.album?.cover_url}
-                        hideInfo={true}
-                    />
+            {/* Main Content Areas */}
+            <div className="flex-1 flex flex-col w-full relative z-10 px-4 pb-8 overflow-hidden">
+
+                {/* 1. Vinyl - Top Centered (Flexible space above and below) */}
+                <div className="flex-1 flex items-center justify-center min-h-0">
+                    <div className="relative" style={{ transform: 'scale(1)' }}>
+                        <VinylTurntable
+                            song={currentSong}
+                            isPlaying={isPlaying}
+                            albumArt={currentSong?.album?.cover_url}
+                            hideInfo={true}
+                        />
+                    </div>
                 </div>
 
-                {/* Analog Amplifier WITH Controls */}
-                <div className="relative z-20 w-full max-w-[400px]">
-                    <AnalogAmplifier
-                        isPlaying={isPlaying}
-                        onTogglePlay={togglePlay}
-                        onNext={handleNext}
-                        onPrev={handlePrevious}
-                    />
+                {/* 2. Analog Amplifier - Visualizer ONLY */}
+                <div className="w-full max-w-[400px] mx-auto mb-6 shrink-0">
+                    <AnalogAmplifier isPlaying={isPlaying} />
                 </div>
-            </div>
 
-            {/* Bottom Section: Floating Song Card */}
-            <div className="relative z-30 pb-4 px-4">
-                {/* Floating Glass Card */}
-                <div className="song-card-glass w-full">
-                    <div className="song-card-handle"></div>
+                {/* 3. Song Carousel (Mini Player Style) */}
+                <div className="w-full max-w-[400px] mx-auto shrink-0 relative mb-4">
+                    <div className="absolute inset-y-0 -left-4 w-4 bg-gradient-to-r from-black/20 to-transparent z-20 pointer-events-none"></div>
+                    <div className="absolute inset-y-0 -right-4 w-4 bg-gradient-to-l from-black/20 to-transparent z-20 pointer-events-none"></div>
 
-                    {/* Swipeable Carousel */}
-                    <div className="relative w-full overflow-hidden h-20 mb-2">
+                    <div className="h-[60px] relative overflow-hidden">
                         <motion.div
                             drag="x"
                             dragConstraints={{ left: 0, right: 0 }}
                             dragElastic={0.2}
                             onDragEnd={handleDragEnd}
-                            className="absolute inset-0 flex items-center justify-between cursor-grab active:cursor-grabbing text-center"
+                            className="absolute inset-0 flex items-center justify-between cursor-grab active:cursor-grabbing mini-player-card"
                             key={viewIndex}
                             initial={{ opacity: 0, x: 50 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -50 }}
                             transition={{ duration: 0.2 }}
+                            onClick={() => !isViewedSongPlaying && playSong(viewedSong)}
                         >
-                            <div className="w-full flex flex-col items-center" onClick={() => !isViewedSongPlaying && playSong(viewedSong)}>
-                                <h2 className={`text-xl font-bold leading-tight line-clamp-1 px-4 ${!isViewedSongPlaying ? 'text-white/60' : 'text-white'}`}>
-                                    {viewedSong?.title || 'Unknown Title'}
-                                </h2>
-                                <p className="text-white/60 text-sm mt-1 line-clamp-1">{viewedSong?.artist?.name || 'Unknown Artist'}</p>
+                            <div className="mini-player-info">
+                                {/* Album Art Icon */}
+                                <img
+                                    src={viewedSong?.album?.cover_url || viewedSong?.album?.images?.[0]?.url}
+                                    className="mini-player-art"
+                                    alt=""
+                                />
+
+                                {/* Text Info */}
+                                <div className="mini-player-text">
+                                    <span className={`mini-player-title ${!isViewedSongPlaying ? 'text-white/60' : 'text-white'}`}>
+                                        {viewedSong?.title || 'Unknown Title'}
+                                    </span>
+                                    <span className="mini-player-artist">
+                                        {viewedSong?.artist?.name || 'Unknown Artist'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mini-player-actions">
+                                {/* Like Heart */}
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); rateSong(viewedSong.id, viewedSong.myRating === 5 ? 0 : 5); }}
+                                    className={`transition-colors ${viewedSong?.myRating === 5 ? 'text-green-500' : 'text-white/30'}`}
+                                >
+                                    <ThumbsUp size={20} fill={viewedSong?.myRating === 5 ? 'currentColor' : 'none'} />
+                                </button>
+
+                                {/* Play Button (If not playing/current) */}
+                                {!isViewedSongPlaying ? (
+                                    <button className="text-green-500">
+                                        <Play size={24} fill="currentColor" />
+                                    </button>
+                                ) : (
+                                    <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white">
+                                        {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
+                                    </button>
+                                )}
                             </div>
                         </motion.div>
-
-                        {/* Like Button (Absolute) */}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); rateSong(viewedSong.id, viewedSong.myRating === 5 ? 0 : 5); }}
-                            className={`absolute right-0 top-1/2 -translate-y-1/2 p-2 transition-colors ${viewedSong?.myRating === 5 ? 'text-green-500' : 'text-white/30'}`}
-                        >
-                            <ThumbsUp size={20} fill={viewedSong?.myRating === 5 ? 'currentColor' : 'none'} />
-                        </button>
-                        {/* Shuffle Button (Absolute Left) */}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setShuffle(!shuffle); }}
-                            className={`absolute left-0 top-1/2 -translate-y-1/2 p-2 transition-colors ${shuffle ? 'text-green-500' : 'text-white/30'}`}
-                        >
-                            <Shuffle size={20} />
-                        </button>
                     </div>
+                </div>
 
-                    {/* Progress Bar */}
-                    <div className="w-full group px-2">
-                        <input
-                            type="range"
-                            min="0"
-                            max={duration || 100}
-                            value={isScrubbing ? scrubValue : currentTime}
-                            onChange={(e) => { setIsScrubbing(true); handleScrub(e); }}
-                            onTouchEnd={handleScrubEnd}
-                            onMouseUp={handleScrubEnd}
-                            className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-white hover:h-2 transition-all"
-                            dir="ltr"
-                        />
-                        <div className="flex justify-between text-[10px] text-white/40 mt-1 font-mono" dir="ltr">
-                            <span>{formatTime(isScrubbing ? scrubValue : currentTime)}</span>
-                            <span>{formatTime(duration)}</span>
-                        </div>
+                {/* 4. Progress Bar (Below Carousel) */}
+                <div className="w-full max-w-[400px] mx-auto shrink-0 px-1 mb-8">
+                    <input
+                        type="range"
+                        min="0"
+                        max={duration || 100}
+                        value={isScrubbing ? scrubValue : currentTime}
+                        onChange={(e) => { setIsScrubbing(true); handleScrub(e); }}
+                        onTouchEnd={handleScrubEnd}
+                        onMouseUp={handleScrubEnd}
+                        className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-white hover:h-2 transition-all"
+                        dir="ltr"
+                    />
+                    <div className="flex justify-between text-[10px] text-white/40 mt-1 font-mono" dir="ltr">
+                        <span>{formatTime(isScrubbing ? scrubValue : currentTime)}</span>
+                        <span>{formatTime(duration)}</span>
                     </div>
                 </div>
             </div>
