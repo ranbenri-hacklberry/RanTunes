@@ -326,9 +326,9 @@ export default function SpotifyPlaylistSearch({ onClose, onAddPlaylist, onRemove
                                         </div>
                                     ) : (
                                         <div className="p-2">
-                                            {playlistTracks.map((track, index) => (
+                                            {playlistTracks.filter(track => track && track.id).map((track, index) => (
                                                 <div
-                                                    key={track.id || index}
+                                                    key={track.id}
                                                     className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors"
                                                 >
                                                     {/* Track Number */}

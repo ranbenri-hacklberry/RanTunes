@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
     Music, Disc, ListMusic, Search, Upload, RefreshCw,
     ArrowRight, Sparkles, User, Play, FolderOpen, Heart,
-    Pause, SkipForward, SkipBack, Trash2, X, HardDrive, AlertCircle, LogOut, Pencil
+    Pause, SkipForward, SkipBack, Trash2, X, HardDrive, AlertCircle, LogOut, Pencil,
+    ThumbsUp, ThumbsDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMusic } from '@/context/MusicContext';
@@ -347,8 +348,8 @@ const MusicPageContent = () => {
             </header>
 
             <div className="music-split-layout flex-1 flex overflow-hidden">
-                {/* Turntable Side */}
-                <div className="w-[380px] lg:w-[450px] shrink-0 order-last bg-black/20 border-r border-white/5 flex flex-col items-center justify-center p-6">
+                {/* Turntable Side - moved up to make room for like/dislike */}
+                <div className="w-[380px] lg:w-[450px] shrink-0 order-last bg-black/20 border-r border-white/5 flex flex-col items-center pt-4 pb-6 px-6">
                     <VinylTurntable
                         song={currentSong}
                         isPlaying={isPlaying}
@@ -356,17 +357,44 @@ const MusicPageContent = () => {
                     />
 
                     {currentSong && (
-                        <div className="flex items-center gap-4 mt-6" dir="ltr">
-                            <button onClick={handlePrevious} className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform">
-                                <SkipBack className="w-5 h-5 text-white" />
-                            </button>
-                            <button onClick={togglePlay} className="w-16 h-16 rounded-full music-gradient-purple flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
-                                {isPlaying ? <Pause className="w-7 h-7 text-white" /> : <Play className="w-7 h-7 text-white fill-white mr-[-3px]" />}
-                            </button>
-                            <button onClick={handleNext} className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform">
-                                <SkipForward className="w-5 h-5 text-white" />
-                            </button>
-                        </div>
+                        <>
+                            {/* Player Controls */}
+                            <div className="flex items-center gap-4 mt-4" dir="ltr">
+                                <button onClick={handlePrevious} className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform">
+                                    <SkipBack className="w-5 h-5 text-white" />
+                                </button>
+                                <button onClick={togglePlay} className="w-16 h-16 rounded-full music-gradient-purple flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+                                    {isPlaying ? <Pause className="w-7 h-7 text-white" /> : <Play className="w-7 h-7 text-white fill-white mr-[-3px]" />}
+                                </button>
+                                <button onClick={handleNext} className="w-12 h-12 rounded-full music-glass flex items-center justify-center hover:scale-110 transition-transform">
+                                    <SkipForward className="w-5 h-5 text-white" />
+                                </button>
+                            </div>
+
+                            {/* Like/Dislike Buttons */}
+                            <div className="flex items-center gap-6 mt-4">
+                                <button
+                                    onClick={() => rateSong(currentSong?.id, currentSong?.myRating === 1 ? 0 : 1)}
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all transform hover:scale-110
+                                        ${currentSong?.myRating === 1
+                                            ? 'bg-red-500/30 text-red-400 ring-2 ring-red-400/50'
+                                            : 'music-glass text-white/50 hover:text-red-400'}`}
+                                    title="לא אהבתי"
+                                >
+                                    <ThumbsDown className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => rateSong(currentSong?.id, currentSong?.myRating === 5 ? 0 : 5)}
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all transform hover:scale-110
+                                        ${currentSong?.myRating === 5
+                                            ? 'bg-green-500/30 text-green-400 ring-2 ring-green-400/50'
+                                            : 'music-glass text-white/50 hover:text-green-400'}`}
+                                    title="אהבתי"
+                                >
+                                    <ThumbsUp className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </>
                     )}
 
                     {!currentSong && (

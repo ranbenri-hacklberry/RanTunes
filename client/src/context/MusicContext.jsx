@@ -51,8 +51,53 @@ export const MusicProvider = ({ children }) => {
             setIsPlaying(sdk.isPlaying);
             if (sdk.position > 0) setCurrentTime(sdk.position / 1000);
             if (sdk.duration > 0) setDuration(sdk.duration / 1000);
+
+            // Detect track change from Spotify SDK
+            if (sdk.currentTrack && sdk.currentTrack.uri !== currentSong?.file_path) {
+                console.log('🎧 [MusicContext] Spotify track changed to:', sdk.currentTrack.name);
+
+                // Find the new track in our playlist
+                const newTrackUri = sdk.currentTrack.uri;
+                const newTrackInPlaylist = playlist.find(s => s.file_path === newTrackUri);
+
+                if (newTrackInPlaylist) {
+                    // Update current song to match what Spotify is playing
+                    setCurrentSong(newTrackInPlaylist);
+                    const newIndex = playlist.findIndex(s => s.file_path === newTrackUri);
+                    if (newIndex >= 0) setPlaylistIndex(newIndex);
+                } else {
+                    // Track not in our playlist - create a minimal song object
+                    const spotifyTrack = sdk.currentTrack;
+                    setCurrentSong({
+                        id: spotifyTrack.id,
+                        title: spotifyTrack.name,
+                        file_path: spotifyTrack.uri,
+                        artist: { name: spotifyTrack.artists?.[0]?.name || 'Unknown' },
+                        album: {
+                            name: spotifyTrack.album?.name,
+                            cover_url: spotifyTrack.album?.images?.[0]?.url
+                        },
+                        duration_seconds: Math.round(sdk.duration / 1000)
+                    });
+                }
+
+                // Sync to Supabase for iCaffe
+                if (currentUser && sdk.currentTrack) {
+                    supabase.from('music_current_playback').upsert({
+                        user_id: currentUser.id,
+                        song_id: sdk.currentTrack.id,
+                        song_title: sdk.currentTrack.name,
+                        artist_name: sdk.currentTrack.artists?.[0]?.name || 'Unknown',
+                        album_name: sdk.currentTrack.album?.name || '',
+                        cover_url: sdk.currentTrack.album?.images?.[0]?.url || null,
+                        spotify_uri: sdk.currentTrack.uri,
+                        is_playing: sdk.isPlaying,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_id' }).catch(err => console.warn('Sync error:', err));
+                }
+            }
         }
-    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, currentSong]);
+    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, currentSong, playlist, currentUser]);
 
     // Skip threshold - if song was played less than 30% before skip, count as dislike
     const SKIP_THRESHOLD = 0.3;

@@ -69,28 +69,6 @@ const SongRow = ({
                 )}
             </div>
 
-
-            {/* Like / Dislike */}
-            <div className="flex-shrink-0 ml-3 flex items-center gap-2">
-                <button
-                    onClick={(e) => { e.stopPropagation(); handleRate(1); }}
-                    className={`p-2 sm:p-3 rounded-full transition-all transform hover:scale-110
-                        ${isDisliked ? 'text-red-400 bg-red-500/20 ring-1 ring-red-400/40' : 'text-white/40 hover:text-red-400 hover:bg-white/10'}`}
-                    title="לא אהבתי"
-                >
-                    <ThumbsDown className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-
-                <button
-                    onClick={(e) => { e.stopPropagation(); handleRate(5); }}
-                    className={`p-2 sm:p-3 rounded-full transition-all transform hover:scale-110
-                        ${isLiked ? 'text-green-400 bg-green-500/20 ring-1 ring-green-400/40' : 'text-white/40 hover:text-green-400 hover:bg-white/10'}`}
-                    title="אהבתי"
-                >
-                    <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-            </div>
-
             {/* Duration */}
             <div className="w-12 flex-shrink-0 text-left text-white/40 text-sm">
                 {formatDuration(song.duration_seconds)}
