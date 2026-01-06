@@ -27,11 +27,16 @@ const MiniMusicPlayer = ({ onClick }) => {
         await rateSong(currentSong.id, finalRating);
     };
 
-    // Calculate progress percentage
-    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+    // Format time (seconds to MM:SS)
+    const formatTime = (seconds) => {
+        if (!seconds || isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     return (
-        <div className="flex flex-col gap-1 min-w-[300px] max-w-[450px]">
+        <div className="flex flex-col gap-1 min-w-[340px] max-w-[450px]">
             <div
                 className="flex items-center gap-4 px-4 py-2 music-glass rounded-2xl border border-white/10 cursor-pointer group"
                 onClick={onClick}
@@ -104,13 +109,17 @@ const MiniMusicPlayer = ({ onClick }) => {
                 </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="px-2">
-                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+            {/* Progress Bar (RTL) */}
+            <div className="px-2" dir="rtl">
+                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden relative">
                     <div
-                        className="h-full bg-purple-500 transition-all duration-300 ease-linear"
+                        className="h-full bg-gradient-to-l from-purple-500 to-pink-500 absolute right-0 top-0 transition-all duration-300 ease-linear"
                         style={{ width: `${progress}%` }}
                     />
+                </div>
+                <div className="flex justify-between mt-1 text-[9px] text-white/30 font-mono">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
                 </div>
             </div>
         </div>

@@ -17,8 +17,12 @@ const MusicMiniBar = ({ onExpandClick }) => {
         togglePlay,
         handleNext,
         handlePrevious,
-        setVolume
+        setVolume,
+        currentTime,
+        duration
     } = useMusic();
+
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     const [showVolume, setShowVolume] = useState(false);
 
@@ -156,6 +160,13 @@ const MusicMiniBar = ({ onExpandClick }) => {
                     onClick={() => { setShowRating(false); setShowVolume(false); }}
                 />
             )}
+            {/* Progress line at the bottom (RTL) */}
+            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5" dir="rtl">
+                <div
+                    className="h-full bg-gradient-to-l from-purple-500 to-pink-500 transition-all duration-300 ease-linear"
+                    style={{ width: `${progress}%` }}
+                />
+            </div>
         </div>
     );
 };
