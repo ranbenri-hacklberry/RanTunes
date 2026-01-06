@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { Play, Pause, SkipForward, SkipBack } from 'lucide-react';
 
-const AnalogAmplifier = ({ isPlaying }) => {
+const AnalogAmplifier = ({ isPlaying, onTogglePlay, onNext, onPrev }) => {
     const [leftNeedle, setLeftNeedle] = useState(-45);
     const [rightNeedle, setRightNeedle] = useState(-45);
 
@@ -33,7 +34,7 @@ const AnalogAmplifier = ({ isPlaying }) => {
     }, [isPlaying]);
 
     return (
-        <div className="analog-amp-container mx-auto">
+        <div className="analog-amp-container mx-auto relative">
             {/* Valid HTML/CSS structure matching music.css */}
             <div className="amp-face relative">
                 {/* Screws */}
@@ -45,13 +46,28 @@ const AnalogAmplifier = ({ isPlaying }) => {
                 {/* Left VU Meter */}
                 <VUMeter rotation={leftNeedle} label="LEFT" />
 
+                {/* Center Controls (Retro Style) */}
+                <div className="flex items-center gap-4 px-2 z-20">
+                    <button onClick={onPrev} className="retro-btn retro-btn-md active:scale-95">
+                        <SkipBack size={18} fill="currentColor" />
+                    </button>
+
+                    <button onClick={onTogglePlay} className="retro-btn retro-btn-lg active:scale-95 flex items-center justify-center">
+                        {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
+                    </button>
+
+                    <button onClick={onNext} className="retro-btn retro-btn-md active:scale-95">
+                        <SkipForward size={18} fill="currentColor" />
+                    </button>
+                </div>
+
                 {/* Right VU Meter */}
                 <VUMeter rotation={rightNeedle} label="RIGHT" />
 
-                {/* Center Badge / Logo Area */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                    <span className="text-[6px] font-bold text-black/70 tracking-widest">STEREO</span>
-                    <div className={`w-1 h-1 rounded-full mt-1 ${isPlaying ? 'bg-red-500 shadow-[0_0_5px_rgba(255,0,0,0.8)]' : 'bg-red-900'}`}></div>
+                {/* Center Badge / Logo Area (Moved up slightly) */}
+                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 flex flex-col items-center pointer-events-none">
+                    <span className="text-[6px] font-bold text-black/70 tracking-widest mb-0.5">STEREO</span>
+                    <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-red-500 shadow-[0_0_5px_rgba(255,0,0,0.8)]' : 'bg-red-900'}`}></div>
                 </div>
             </div>
         </div>
