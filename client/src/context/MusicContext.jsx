@@ -81,20 +81,27 @@ export const MusicProvider = ({ children }) => {
                     });
                 }
 
-                // Sync to Supabase for iCaffe
+                // Sync to Supabase for iCaffe (disabled until table is created)
+                // TODO: Run CREATE_SHARED_PLAYBACK_TABLE.sql in Supabase to enable this
+                /*
                 if (currentUser && sdk.currentTrack) {
-                    supabase.from('music_current_playback').upsert({
-                        user_id: currentUser.id,
-                        song_id: sdk.currentTrack.id,
-                        song_title: sdk.currentTrack.name,
-                        artist_name: sdk.currentTrack.artists?.[0]?.name || 'Unknown',
-                        album_name: sdk.currentTrack.album?.name || '',
-                        cover_url: sdk.currentTrack.album?.images?.[0]?.url || null,
-                        spotify_uri: sdk.currentTrack.uri,
-                        is_playing: sdk.isPlaying,
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'user_id' }).catch(err => console.warn('Sync error:', err));
+                    try {
+                        await supabase.from('music_current_playback').upsert({
+                            user_id: currentUser.id,
+                            song_id: sdk.currentTrack.id,
+                            song_title: sdk.currentTrack.name,
+                            artist_name: sdk.currentTrack.artists?.[0]?.name || 'Unknown',
+                            album_name: sdk.currentTrack.album?.name || '',
+                            cover_url: sdk.currentTrack.album?.images?.[0]?.url || null,
+                            spotify_uri: sdk.currentTrack.uri,
+                            is_playing: sdk.isPlaying,
+                            updated_at: new Date().toISOString()
+                        }, { onConflict: 'user_id' });
+                    } catch (err) {
+                        console.warn('Sync error:', err);
+                    }
                 }
+                */
             }
         }
     }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, currentSong, playlist, currentUser]);
@@ -264,7 +271,9 @@ export const MusicProvider = ({ children }) => {
                 setPlaylistIndex(idx >= 0 ? idx : 0);
             }
 
-            // Sync playback state to Supabase for iCaffe integration
+            // Sync playback state to Supabase for iCaffe integration (disabled until table is created)
+            // TODO: Run CREATE_SHARED_PLAYBACK_TABLE.sql in Supabase to enable this
+            /*
             if (currentUser) {
                 try {
                     await supabase.from('music_current_playback').upsert({
@@ -283,6 +292,7 @@ export const MusicProvider = ({ children }) => {
                     console.warn('Failed to sync playback state:', syncErr);
                 }
             }
+            */
         } catch (error) {
             console.error('Error playing song:', error);
         } finally {
