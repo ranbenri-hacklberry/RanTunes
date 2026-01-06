@@ -35,6 +35,9 @@ const MiniMusicPlayer = ({ onClick }) => {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    // Calculate progress percentage
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
     return (
         <div className="flex flex-col gap-1 min-w-[340px] max-w-[450px]">
             <div
