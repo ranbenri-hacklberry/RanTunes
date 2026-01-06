@@ -55,22 +55,28 @@ export const MusicProvider = ({ children }) => {
         }
     }, [isLocalPlaying, localTime, localDuration, currentSong]);
 
+    // 5. JUST LOADED PROTECTION
+    const lastLoadTimeRef = useRef(0);
+
     // Sync state from Spotify SDK
     useEffect(() => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
         if (isSpotify && sdk.isReady) {
             // 1. Sync Playback State
-            if (!isLoading) {
+            const now = Date.now();
+            const recentlyLoaded = now - lastLoadTimeRef.current < 2000;
+
+            if (!isLoading && !recentlyLoaded) {
                 setIsPlaying(sdk.isPlaying);
             }
+
             if (sdk.position > 0) setCurrentTime(sdk.position / 1000);
             if (sdk.duration > 0) setDuration(sdk.duration / 1000);
 
             // 2. Sync Metadata (Handle auto-advance/external changes)
             if (sdk.currentTrack) {
                 const spotifyUri = `spotify:track:${sdk.currentTrack.id}`;
-                // If the URI from SDK doesn't match our currentSong, update it
-                if (currentSong.file_path !== spotifyUri) {
+                if (currentSong?.file_path !== spotifyUri) {
                     const matchedSong = playlist.find(s => s.file_path === spotifyUri);
                     if (matchedSong) {
                         setCurrentSong(matchedSong);
@@ -102,25 +108,37 @@ export const MusicProvider = ({ children }) => {
     const togglePlay = useCallback(async () => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
         if (isSpotify && sdk.isReady) {
+            // Optimistic update to UI
+            setIsPlaying(prev => !prev);
             await sdk.togglePlay();
-        } else {
+        } else if (!isSpotify) {
             if (isLocalPlaying) pauseLocal();
             else resumeLocal();
         }
     }, [currentSong, sdk, isLocalPlaying, pauseLocal, resumeLocal]);
 
     // PLAY ACTION
-    const playSong = useCallback(async (song, playlistSongs = null) => {
+    const playSong = useCallback(async (song, playlistSongs = null, forcePlay = false) => {
         if (!song) return;
 
+        console.log('🎵 [MusicContext] playSong called:', {
+            title: song.title,
+            id: song.id,
+            isCurrent: currentSong?.id === song.id,
+            forcePlay
+        });
+
         // If same song is already playing/current, toggle instead of restart
-        if (currentSong?.id === song.id) {
+        // Unless forcePlay is true (useful for "Play Album" buttons)
+        if (currentSong?.id === song.id && !forcePlay) {
+            console.log('🎵 [MusicContext] same song, toggling...');
             togglePlay();
             return;
         }
 
         // Never play disliked songs
         if ((song.myRating || 0) === 1) {
+            console.log('🎵 [MusicContext] Song is disliked, skipping...');
             if (Array.isArray(playlistSongs) || playlist.length > 0) {
                 if (Array.isArray(playlistSongs)) setPlaylist(playlistSongs);
                 setTimeout(() => handleNextRef.current(), 100);
@@ -131,20 +149,28 @@ export const MusicProvider = ({ children }) => {
         setIsLoading(true);
         setPlaybackError(null);
 
+        // Optimistically update current song immediately to catch rapid clicks
+        setCurrentSong(song);
+
         try {
             const isSpotifyTrack = song.file_path?.startsWith('spotify:');
             const currentPlaylist = Array.isArray(playlistSongs) ? playlistSongs : (Array.isArray(playlist) ? playlist : []);
 
             if (isSpotifyTrack) {
+                console.log('🎵 [MusicContext] playing Spotify track:', song.file_path);
                 const allSpotifyUris = currentPlaylist
                     .filter(s => s.file_path?.startsWith('spotify:track:') && (s.myRating || 0) !== 1)
                     .map(s => s.file_path);
 
                 try {
+                    // Stop any local playback first
+                    pauseLocal();
+
                     if (sdk.isReady && sdk.deviceId) {
                         // Optimistic UI update
                         setIsPlaying(true);
                         await sdk.play(song.file_path, 0, allSpotifyUris);
+                        console.log('🎵 [MusicContext] sdk.play called successfully');
                     } else if (song.preview_url) {
                         setIsPlaying(true);
                         await playLocalPath(song.preview_url, true);
@@ -157,6 +183,7 @@ export const MusicProvider = ({ children }) => {
                         showToast('מנגן דרך Spotify Connect', 'info');
                     }
                 } catch (err) {
+                    console.error('🎵 [MusicContext] Spotify play operation failed:', err);
                     const errorMsg = err.message || 'לא ניתן לנגן את הרצועה';
                     setPlaybackError(`שגיאת Spotify: ${errorMsg}`);
                     showToast(errorMsg, 'error');
@@ -176,8 +203,7 @@ export const MusicProvider = ({ children }) => {
                 }
             }
 
-            setCurrentSong(song);
-
+            // Playlist update
             if (Array.isArray(playlistSongs)) {
                 setPlaylist(playlistSongs);
                 const idx = playlistSongs.findIndex(s => s.id === song.id);
@@ -188,8 +214,9 @@ export const MusicProvider = ({ children }) => {
             setPlaybackError(`שגיאה לא צפויה: ${error.message}`);
         } finally {
             setIsLoading(false);
+            lastLoadTimeRef.current = Date.now();
         }
-    }, [currentSong, togglePlay, playlist, sdk.isReady, sdk.deviceId, sdk.play, showToast, playLocalPath]);
+    }, [currentSong, togglePlay, playlist, sdk.isReady, sdk.deviceId, sdk.play, showToast, playLocalPath, pauseLocal]);
 
     const pause = useCallback(async () => {
         if (currentSong?.file_path?.startsWith('spotify:')) {

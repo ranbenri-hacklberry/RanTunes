@@ -190,7 +190,7 @@ const MusicPageContent = () => {
         setCurrentAlbumSongs(songs);
         const playable = (songs || []).filter(s => (s?.myRating || 0) !== 1);
         if (playable.length > 0) {
-            playSong(playable[0], playable);
+            playSong(playable[0], playable, true);
         }
     };
 
@@ -200,7 +200,7 @@ const MusicPageContent = () => {
         setCurrentAlbumSongs(songs);
         const playable = (songs || []).filter(s => (s?.myRating || 0) !== 1);
         if (playable.length > 0) {
-            playSong(playable[0], playable);
+            playSong(playable[0], playable, true);
         }
     };
 
