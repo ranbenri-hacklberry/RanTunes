@@ -251,35 +251,37 @@ const MusicPageContent = () => {
     const handleMiniPlayerClick = async () => {
         if (!currentSong) return;
 
-        // If it's already selected and visible, no need to do anything
-        if (selectedAlbum && currentAlbumSongs.some(s => s.id === currentSong.id)) {
-            return;
-        }
+        console.log('🔗 MiniPlayer Click - Current Song:', currentSong.title, 'Playlist ID:', currentSong.playlist_id, 'Album ID:', currentSong.album_id);
 
-        // 1. Check if it's an album song
-        if (currentSong.album_id) {
-            const album = albums.find(a => a.id === currentSong.album_id);
-            if (album) {
-                setSelectedAlbum({ ...album, isPlaylist: false });
+        // 1. Check if it belongs to a playlist (Best match for current context)
+        if (currentSong.playlist_id) {
+            const playlist = playlists.find(p => p.id === currentSong.playlist_id);
+            if (playlist) {
+                console.log('✅ Found Playlist:', playlist.name);
+                setSelectedAlbum({ ...playlist, isPlaylist: true, artist: { name: 'פלייליסט' } });
                 return;
             }
         }
 
-        // 2. Check if it belongs to a playlist
-        if (currentSong.playlist_id) {
-            const playlist = playlists.find(p => p.id === currentSong.playlist_id);
-            if (playlist) {
-                setSelectedAlbum({ ...playlist, isPlaylist: true, artist: { name: 'פלייליסט' } });
+        // 2. Check if it's an album song
+        if (currentSong.album_id) {
+            const album = albums.find(a => a.id === currentSong.album_id);
+            if (album) {
+                console.log('✅ Found Album:', album.name);
+                setSelectedAlbum({ ...album, isPlaylist: false });
                 return;
             }
         }
 
         // 3. Check favorites
         if (favoriteSongs.some(s => s.id === currentSong.id)) {
+            console.log('✅ Found in Favorites');
             setSelectedAlbum(null);
             setActiveTab('favorites');
             return;
         }
+
+        console.log('❌ No matching collection found for MiniPlayer click fallback');
     };
 
     // Auto-scroll to current song
@@ -306,7 +308,7 @@ const MusicPageContent = () => {
                             <Music className="w-6 h-6 text-purple-400" />
                             <h1 className="text-white text-xl font-bold">RanTunes</h1>
                         </div>
-                        <span className="text-white/30 text-xs mr-8">v0.9.13</span>
+                        <span className="text-white/30 text-xs mr-8">v0.9.14</span>
                     </div>
                     <div className="hidden lg:block">
                         <MiniMusicPlayer onClick={handleMiniPlayerClick} />
