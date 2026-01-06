@@ -18,6 +18,7 @@ export default function SpotifyPlaylistSearch({ onClose, onAddPlaylist, onRemove
     const [isLoadingTracks, setIsLoadingTracks] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [viewMode, setViewMode] = useState('my'); // 'my' or 'search'
+    const [isImporting, setIsImporting] = useState(false);
 
     // Format duration from ms to mm:ss
     const formatDuration = (ms) => {
@@ -98,8 +99,13 @@ export default function SpotifyPlaylistSearch({ onClose, onAddPlaylist, onRemove
 
     // Handle playlist import
     const handleImportPlaylist = async () => {
-        if (!selectedPlaylist) return;
-        await onAddPlaylist?.(selectedPlaylist, playlistTracks);
+        if (!selectedPlaylist || isImporting) return;
+        setIsImporting(true);
+        try {
+            await onAddPlaylist?.(selectedPlaylist, playlistTracks);
+        } finally {
+            setIsImporting(false);
+        }
     };
 
     // Check if playlist is already imported
@@ -296,23 +302,30 @@ export default function SpotifyPlaylistSearch({ onClose, onAddPlaylist, onRemove
                                         {/* Import Button */}
                                         <button
                                             onClick={handleImportPlaylist}
-                                            disabled={isPlaylistImported(selectedPlaylist.id)}
+                                            disabled={isPlaylistImported(selectedPlaylist.id) || isImporting}
                                             className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0
                                                 ${isPlaylistImported(selectedPlaylist.id)
                                                     ? 'bg-green-600/30 text-green-400 cursor-default'
-                                                    : 'bg-green-600 text-white hover:bg-green-500 hover:scale-105'
+                                                    : (isImporting ? 'bg-green-600/50 text-white/50 cursor-wait' : 'bg-green-600 text-white hover:bg-green-500 hover:scale-105')
                                                 }`}
                                         >
-                                            {isPlaylistImported(selectedPlaylist.id) ? (
+                                            {isImporting ? (
                                                 <>
-                                                    <Check className="w-5 h-5" />
-                                                    נוסף
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                    מייבא...
                                                 </>
                                             ) : (
-                                                <>
-                                                    <Plus className="w-5 h-5" />
-                                                    ייבא פלייליסט
-                                                </>
+                                                isPlaylistImported(selectedPlaylist.id) ? (
+                                                    <>
+                                                        <Check className="w-5 h-5" />
+                                                        נוסף
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Plus className="w-5 h-5" />
+                                                        ייבא פלייליסט
+                                                    </>
+                                                )
                                             )}
                                         </button>
                                     </div>

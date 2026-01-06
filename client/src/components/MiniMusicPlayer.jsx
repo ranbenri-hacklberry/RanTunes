@@ -5,7 +5,7 @@ import { useMusic } from '@/context/MusicContext';
 /**
  * Mini music player for headers - RanTunes Dark Version
  */
-const MiniMusicPlayer = () => {
+const MiniMusicPlayer = ({ onClick }) => {
     const {
         currentSong,
         isPlaying,
@@ -32,10 +32,13 @@ const MiniMusicPlayer = () => {
 
     return (
         <div className="flex flex-col gap-1 min-w-[300px] max-w-[450px]">
-            <div className="flex items-center gap-4 px-4 py-2 music-glass rounded-2xl border border-white/10">
+            <div
+                className="flex items-center gap-4 px-4 py-2 music-glass rounded-2xl border border-white/10 cursor-pointer group"
+                onClick={onClick}
+            >
                 {/* Song Info */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm border border-white/10">
+                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm border border-white/10 group-hover:scale-105 transition-transform">
                         {currentSong.album?.cover_url ? (
                             <img
                                 src={currentSong.album.cover_url}
@@ -62,8 +65,8 @@ const MiniMusicPlayer = () => {
                     <button
                         onClick={() => handleRate(1)}
                         className={`p-2 rounded-lg transition-all ${isDisliked
-                                ? 'bg-red-500/20 text-red-400 shadow-sm'
-                                : 'text-white/40 hover:bg-white/10 hover:text-white'
+                            ? 'bg-red-500/20 text-red-400 shadow-sm'
+                            : 'text-white/40 hover:bg-white/10 hover:text-white'
                             }`}
                         title="לא אהבתי"
                     >
@@ -74,8 +77,8 @@ const MiniMusicPlayer = () => {
                     <button
                         onClick={() => handleRate(5)}
                         className={`p-2 rounded-lg transition-all ${isLiked
-                                ? 'bg-green-500/20 text-green-400 shadow-sm'
-                                : 'text-white/40 hover:bg-white/10 hover:text-white'
+                            ? 'bg-green-500/20 text-green-400 shadow-sm'
+                            : 'text-white/40 hover:bg-white/10 hover:text-white'
                             }`}
                         title="אהבתי"
                     >

@@ -351,20 +351,39 @@ export const useAlbums = () => {
 
             const businessId = currentUser?.business_id || null;
 
-            // 1. Create playlist record
-            const { data: playlistData, error: playlistError } = await supabase
+            // 1. Check if playlist already exists for this user (by name)
+            const { data: existingPlaylist } = await supabase
                 .from('rantunes_playlists')
-                .insert({
-                    user_id: userId,
-                    name: spotifyPlaylist.name,
-                    description: spotifyPlaylist.description || null,
-                    cover_url: spotifyPlaylist.images?.[0]?.url || null,
-                    is_public: false
-                })
-                .select()
-                .single();
+                .select('id')
+                .eq('user_id', userId)
+                .eq('name', spotifyPlaylist.name)
+                .maybeSingle();
 
-            if (playlistError) throw playlistError;
+            let playlistData;
+
+            if (existingPlaylist) {
+                console.log('ℹ️ Playlist already exists, updating tracks...');
+                playlistData = existingPlaylist;
+
+                // Optional: Clear existing tracks to refresh? Or just skip?
+                // For now let's just use it.
+            } else {
+                // Create playlist record
+                const { data: newPlaylist, error: playlistError } = await supabase
+                    .from('rantunes_playlists')
+                    .insert({
+                        user_id: userId,
+                        name: spotifyPlaylist.name,
+                        description: spotifyPlaylist.description || null,
+                        cover_url: spotifyPlaylist.images?.[0]?.url || null,
+                        is_public: false
+                    })
+                    .select()
+                    .single();
+
+                if (playlistError) throw playlistError;
+                playlistData = newPlaylist;
+            }
 
             // 2. Add tracks to playlist
             if (tracks.length > 0) {
