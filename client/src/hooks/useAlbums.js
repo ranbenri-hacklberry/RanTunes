@@ -4,10 +4,10 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useRanTunesAuth } from '@/context/RanTunesAuthContext';
 
 export const useAlbums = () => {
-    const { currentUser } = useAuth();
+    const { user: currentUser } = useRanTunesAuth();
     const [artists, setArtists] = useState([]);
     const [albums, setAlbums] = useState([]);
     const [playlists, setPlaylists] = useState([]);
