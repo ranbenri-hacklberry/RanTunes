@@ -141,7 +141,7 @@ export const useAlbums = () => {
             // 3. Combine data
             return playlistItems.map(ps => {
                 const mainSong = songsMap[ps.song_id];
-                if (mainSong) return { ...mainSong, myRating: ps.rating };
+                if (mainSong) return { ...mainSong, myRating: ps.rating, playlist_id: playlistId };
 
                 // Fallback to metadata stored in playlist_songs
                 return {
@@ -150,7 +150,8 @@ export const useAlbums = () => {
                     file_path: ps.song_id,
                     artist: { name: ps.song_artist || 'Unknown Artist' },
                     album: { name: '', cover_url: ps.song_cover_url },
-                    duration_seconds: 0
+                    duration_seconds: 0,
+                    playlist_id: playlistId
                 };
             });
         } catch (err) {

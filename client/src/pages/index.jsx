@@ -84,6 +84,8 @@ const MusicPageContent = () => {
         return localStorage.getItem('music_source') || null;
     });
 
+    const songListRef = useRef(null);
+
     useEffect(() => {
         setIsSpotifyConnected(SpotifyService.isSpotifyLoggedIn());
     }, []);
@@ -249,14 +251,40 @@ const MusicPageContent = () => {
     const handleMiniPlayerClick = async () => {
         if (!currentSong) return;
 
-        // Find album or playlist associated with this song
+        // If we already have a selected collection, it might be the one
+        if (selectedAlbum) return;
+
+        // Find album associated with this song
         if (currentSong.album_id) {
             const album = albums.find(a => a.id === currentSong.album_id);
             if (album) {
                 setSelectedAlbum({ ...album, isPlaylist: false });
+                return;
             }
         }
+
+        // If it's a Spotify song but we don't have local album, 
+        // we can still synthesize a minimal album view if we wanted, 
+        // but for now let's check favorites if that's where it came from.
+        if (favoriteSongs.some(s => s.id === currentSong.id)) {
+            setActiveTab('favorites');
+            return;
+        }
     };
+
+    // Auto-scroll to current song
+    useEffect(() => {
+        if (currentSong && selectedAlbum && songListRef.current) {
+            // Find if this song is in the current view
+            const isSongInView = currentAlbumSongs.some(s => s.id === currentSong.id);
+            if (isSongInView) {
+                const element = document.getElementById(`song-${currentSong.id}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        }
+    }, [currentSong?.id, selectedAlbum?.id, currentAlbumSongs]);
 
     return (
         <div className="h-screen flex flex-col music-gradient-dark overflow-hidden" dir="rtl">
@@ -268,7 +296,7 @@ const MusicPageContent = () => {
                             <Music className="w-6 h-6 text-purple-400" />
                             <h1 className="text-white text-xl font-bold">RanTunes</h1>
                         </div>
-                        <span className="text-white/30 text-xs mr-8">v0.9.9</span>
+                        <span className="text-white/30 text-xs mr-8">v0.9.11</span>
                     </div>
                     <div className="hidden lg:block">
                         <MiniMusicPlayer onClick={handleMiniPlayerClick} />
@@ -439,7 +467,7 @@ const MusicPageContent = () => {
                             </div>
 
                             {/* Scrollable Songs List */}
-                            <div className="flex-1 overflow-y-auto music-scrollbar p-4 pt-2">
+                            <div className="flex-1 overflow-y-auto music-scrollbar p-4 pt-2" ref={songListRef}>
                                 <div className="space-y-1">
                                     {currentAlbumSongs.map((song, index) => (
                                         <SongRow

@@ -36,6 +36,7 @@ const SongRow = ({
 
     return (
         <div
+            id={`song-${song.id}`}
             className={`music-song-row ${isCurrentSong ? 'playing' : ''} group`}
             onClick={handlePlay}
         >
