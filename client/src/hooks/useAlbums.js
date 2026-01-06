@@ -161,24 +161,40 @@ export const useAlbums = () => {
     }, []);
 
     // Fetch favorites (songs rated 5)
+    // Note: Uses two queries because rantunes_ratings may not have FK to rantunes_songs
     const fetchFavoritesSongs = useCallback(async () => {
         if (!currentUser?.id) return [];
         try {
-            const { data, error } = await supabase
+            // Step 1: Get ratings
+            const { data: ratings, error: ratingsError } = await supabase
                 .from('rantunes_ratings')
-                .select(`
-                    *,
-                    song:rantunes_songs(
-                        *,
-                        album:rantunes_albums(id, name, cover_url),
-                        artist:rantunes_artists(id, name)
-                    )
-                `)
+                .select('song_id, rating')
                 .eq('user_id', currentUser.id)
                 .eq('rating', 5);
 
-            if (error) throw error;
-            return (data || []).map(r => ({ ...r.song, myRating: r.rating })).filter(s => s?.id);
+            if (ratingsError) throw ratingsError;
+            if (!ratings || ratings.length === 0) return [];
+
+            // Step 2: Get songs by IDs
+            const songIds = ratings.map(r => r.song_id).filter(Boolean);
+            if (songIds.length === 0) return [];
+
+            const { data: songs, error: songsError } = await supabase
+                .from('rantunes_songs')
+                .select(`
+                    *,
+                    album:rantunes_albums(id, name, cover_url),
+                    artist:rantunes_artists(id, name)
+                `)
+                .in('id', songIds);
+
+            if (songsError) throw songsError;
+
+            // Combine rating with song data
+            const ratingMap = {};
+            ratings.forEach(r => { ratingMap[r.song_id] = r.rating; });
+
+            return (songs || []).map(s => ({ ...s, myRating: ratingMap[s.id] || 5 }));
         } catch (err) {
             console.error('Error fetching favorites:', err);
             return [];
