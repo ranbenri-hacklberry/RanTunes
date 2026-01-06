@@ -35,6 +35,11 @@ export const MusicProvider = ({ children }) => {
     const [shuffle, setShuffle] = useState(false);
     const [repeat, setRepeat] = useState('none'); // none, one, all
 
+    // UI States
+    const [isLoading, setIsLoading] = useState(false);
+    const [playbackError, setPlaybackError] = useState(null);
+    const [toast, setToast] = useState(null);
+
     // 4. Shared Display State (Synchronized from either Source)
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -65,11 +70,6 @@ export const MusicProvider = ({ children }) => {
             if (sdk.duration > 0) setDuration(sdk.duration / 1000);
         }
     }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, currentSong, isLoading]);
-
-    // UI States
-    const [isLoading, setIsLoading] = useState(false);
-    const [playbackError, setPlaybackError] = useState(null);
-    const [toast, setToast] = useState(null);
 
     const showToast = useCallback((message, type = 'info') => {
         setToast({ message, type, id: Date.now() });
