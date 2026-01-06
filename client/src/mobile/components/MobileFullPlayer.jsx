@@ -72,7 +72,9 @@ const MobileFullPlayer = ({ onClose }) => {
             <div className="flex-1 flex items-center justify-center p-8 relative overflow-hidden">
                 {/* Background Blur */}
                 <div className="absolute inset-0 z-0 opacity-30 blur-3xl scale-150">
-                    <img src={currentSong.album?.cover_url} className="w-full h-full object-cover" />
+                    {currentSong.album?.cover_url && (
+                        <img src={currentSong.album.cover_url} className="w-full h-full object-cover" />
+                    )}
                 </div>
                 <div className="relative z-10 w-full aspect-square max-w-sm">
                     <VinylTurntable
@@ -89,8 +91,8 @@ const MobileFullPlayer = ({ onClose }) => {
                 {/* Song Info */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-2xl font-bold text-white leading-tight">{currentSong.title}</h2>
-                        <p className="text-white/60 text-lg mt-1">{currentSong.artist?.name}</p>
+                        <h2 className="text-2xl font-bold text-white leading-tight">{currentSong.title || 'Unknown Title'}</h2>
+                        <p className="text-white/60 text-lg mt-1">{currentSong.artist?.name || 'Unknown Artist'}</p>
                     </div>
                     {/* Like Button */}
                     <button
