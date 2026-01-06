@@ -202,7 +202,7 @@ export default function SpotifyPlaylistSearch({ onClose, onAddPlaylist, onRemove
                             </div>
                         ) : (
                             <div className="p-3 space-y-2">
-                                {displayPlaylists.map(playlist => {
+                                {displayPlaylists.filter(playlist => playlist && playlist.id).map(playlist => {
                                     const isSelected = selectedPlaylist?.id === playlist.id;
                                     const isImported = isPlaylistImported(playlist.id);
 
