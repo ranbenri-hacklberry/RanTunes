@@ -46,26 +46,31 @@ export const MusicProvider = ({ children }) => {
     // Spotify Player Hook
     const sdk = useSpotifyPlayer();
 
-    // SDK state sync (silent - no console output for production)
+    // Debounce ref for SDK sync to prevent race conditions
+    const syncDebounceRef = useRef(null);
 
-    // Sync SDK state with context state - ONLY when on a Spotify song
+    // Sync SDK state with context state - ONLY when on a Spotify song (debounced)
     useEffect(() => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
-        if (isSpotify && sdk.isReady) {
+        if (!isSpotify || !sdk.isReady) return;
+
+        // Clear previous debounce timer
+        if (syncDebounceRef.current) {
+            clearTimeout(syncDebounceRef.current);
+        }
+
+        // Debounce state updates to prevent race conditions
+        syncDebounceRef.current = setTimeout(() => {
             setIsPlaying(sdk.isPlaying);
             if (sdk.position > 0) setCurrentTime(sdk.position / 1000);
             if (sdk.duration > 0) setDuration(sdk.duration / 1000);
 
             // Detect track change from Spotify SDK
             if (sdk.currentTrack && sdk.currentTrack.uri !== currentSong?.file_path) {
-                console.log('🎧 [MusicContext] Spotify track changed to:', sdk.currentTrack.name);
-
-                // Find the new track in our playlist
                 const newTrackUri = sdk.currentTrack.uri;
                 const newTrackInPlaylist = playlist.find(s => s.file_path === newTrackUri);
 
                 if (newTrackInPlaylist) {
-                    // Update current song to match what Spotify is playing
                     setCurrentSong(newTrackInPlaylist);
                     const newIndex = playlist.findIndex(s => s.file_path === newTrackUri);
                     if (newIndex >= 0) setPlaylistIndex(newIndex);
@@ -84,30 +89,14 @@ export const MusicProvider = ({ children }) => {
                         duration_seconds: Math.round(sdk.duration / 1000)
                     });
                 }
-
-                // Sync to Supabase for iCaffe (disabled until table is created)
-                // TODO: Run CREATE_SHARED_PLAYBACK_TABLE.sql in Supabase to enable this
-                /*
-                if (currentUser && sdk.currentTrack) {
-                    try {
-                        await supabase.from('music_current_playback').upsert({
-                            user_id: currentUser.id,
-                            song_id: sdk.currentTrack.id,
-                            song_title: sdk.currentTrack.name,
-                            artist_name: sdk.currentTrack.artists?.[0]?.name || 'Unknown',
-                            album_name: sdk.currentTrack.album?.name || '',
-                            cover_url: sdk.currentTrack.album?.images?.[0]?.url || null,
-                            spotify_uri: sdk.currentTrack.uri,
-                            is_playing: sdk.isPlaying,
-                            updated_at: new Date().toISOString()
-                        }, { onConflict: 'user_id' });
-                    } catch (err) {
-                        console.warn('Sync error:', err);
-                    }
-                }
-                */
             }
-        }
+        }, 100); // 100ms debounce
+
+        return () => {
+            if (syncDebounceRef.current) {
+                clearTimeout(syncDebounceRef.current);
+            }
+        };
     }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, currentSong, playlist, currentUser]);
 
     // Skip threshold - if song was played less than 30% before skip, count as dislike
