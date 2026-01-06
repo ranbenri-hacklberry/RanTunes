@@ -139,49 +139,12 @@ export const MusicProvider = ({ children }) => {
         audioRef.current.volume = volume;
     }, [volume]);
 
-    // Log skip as dislike if skipped early
+    // Log skip - simplified version (old tables removed)
     const logSkip = useCallback(async (song, wasEarlySkip) => {
-        if (!song || !currentUser) return;
-
-        try {
-            // Log to playback history
-            await supabase.from('music_playback_history').insert({
-                song_id: song.id,
-                employee_id: currentUser.id,
-                was_skipped: true,
-                business_id: currentUser.business_id
-            });
-
-            // If early skip, increment skip count in ratings
-            if (wasEarlySkip) {
-                const { data: existing } = await supabase
-                    .from('music_ratings')
-                    .select('*')
-                    .eq('song_id', song.id)
-                    .eq('employee_id', currentUser.id)
-                    .single();
-
-                if (existing) {
-                    await supabase
-                        .from('music_ratings')
-                        .update({
-                            skip_count: (existing.skip_count || 0) + 1,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('id', existing.id);
-                } else {
-                    await supabase.from('music_ratings').insert({
-                        song_id: song.id,
-                        employee_id: currentUser.id,
-                        skip_count: 1,
-                        business_id: currentUser.business_id
-                    });
-                }
-            }
-        } catch (error) {
-            console.error('Error logging skip:', error);
-        }
-    }, [currentUser]);
+        // Skip logging disabled - old tables don't exist in RanTunes schema
+        // If we want skip tracking, we should update rantunes_ratings table
+        console.log('🎵 Skip logged:', song?.title, wasEarlySkip ? '(early skip)' : '');
+    }, []);
 
     // Play a song
     const playSong = useCallback(async (song, playlistSongs = null) => {

@@ -135,7 +135,7 @@ export const useAlbums = () => {
                         artist:rantunes_artists(id, name)
                     )
                 `)
-                .eq('employee_id', currentUser.id)
+                .eq('user_id', currentUser.id)
                 .eq('rating', 5);
 
             if (error) throw error;
@@ -497,7 +497,7 @@ export const useAlbums = () => {
                         artist:rantunes_artists(id, name)
                     )
                 `)
-                .eq('employee_id', currentUser.id)
+                .eq('user_id', currentUser.id)
                 .gte('rating', 4)
                 .order('rating', { ascending: false })
                 .limit(options.limit || 20);
