@@ -256,7 +256,7 @@ const MusicPageContent = () => {
                             <Music className="w-6 h-6 text-purple-400" />
                             <h1 className="text-white text-xl font-bold">RanTunes</h1>
                         </div>
-                        <span className="text-white/30 text-xs mr-8">v0.9.3</span>
+                        <span className="text-white/30 text-xs mr-8">v0.9.4</span>
                     </div>
                     <div className="hidden lg:block">
                         <MiniMusicPlayer />
@@ -411,18 +411,23 @@ const MusicPageContent = () => {
 
                 {/* Content Side */}
                 <div className="flex-1 flex flex-col min-w-0">
-                    <div className="flex-1 overflow-y-auto music-scrollbar">
-                        {selectedAlbum ? (
-                            <div className="p-4">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <button onClick={handleBack} className="w-10 h-10 rounded-full music-glass flex items-center justify-center">
+                    {selectedAlbum ? (
+                        <>
+                            {/* Sticky Album Header */}
+                            <div className="shrink-0 p-4 pb-2 bg-gradient-to-b from-black/40 to-transparent backdrop-blur-sm border-b border-white/5">
+                                <div className="flex items-center gap-4">
+                                    <button onClick={handleBack} className="w-10 h-10 rounded-full music-glass flex items-center justify-center hover:bg-white/20 transition-colors">
                                         <ArrowRight className="w-5 h-5 text-white" />
                                     </button>
-                                    <div>
-                                        <h2 className="text-white text-2xl font-bold">{selectedAlbum.name}</h2>
+                                    <div className="flex-1 min-w-0">
+                                        <h2 className="text-white text-2xl font-bold truncate">{selectedAlbum.name}</h2>
                                         <p className="text-white/60">{selectedAlbum.artist?.name} • {currentAlbumSongs.length} שירים</p>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Scrollable Songs List */}
+                            <div className="flex-1 overflow-y-auto music-scrollbar p-4 pt-2">
                                 <div className="space-y-1">
                                     {currentAlbumSongs.map((song, index) => (
                                         <SongRow
@@ -437,7 +442,9 @@ const MusicPageContent = () => {
                                     ))}
                                 </div>
                             </div>
-                        ) : (
+                        </>
+                    ) : (
+                        <div className="flex-1 overflow-y-auto music-scrollbar">
                             <div className="p-4">
                                 <nav className="flex items-center gap-2 mb-4">
                                     {TABS.map(tab => (
@@ -554,8 +561,8 @@ const MusicPageContent = () => {
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -600,7 +607,7 @@ const MusicPageContent = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };
 
