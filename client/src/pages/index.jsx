@@ -32,7 +32,7 @@ const TABS = [
 
 const MusicPageContent = () => {
     const navigate = useNavigate();
-    const { user: currentUser } = useRanTunesAuth();
+    const { user: currentUser, logout } = useRanTunesAuth();
 
     const {
         albums,
