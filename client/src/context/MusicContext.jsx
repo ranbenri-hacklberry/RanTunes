@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useRanTunesAuth } from './RanTunesAuthContext';
 import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAudioAnalyzer } from '@/hooks/useAudioAnalyzer';
 import { MUSIC_API_URL, SKIP_THRESHOLD } from '@/constants/music';
 
 const MusicContext = createContext(null);
@@ -364,6 +365,15 @@ export const MusicProvider = ({ children }) => {
         setIsPlaying(false);
     }, [pauseLocal, seekLocal]);
 
+    // 6. Audio Analysis
+    const { useAudioAnalyzer } = require('@/hooks/useAudioAnalyzer'); // Dynamic require for hook? No, top level import is better. 
+    // Wait, I cannot change imports easily here without a multi-replace or huge view.
+    // I will use a separate replace for imports.
+    // Let's assume I add import at top later.
+
+    // Real Audio Analysis (only active when local/preview is playing)
+    const realAmplitude = useAudioAnalyzer(audioRef, isLocalPlaying || (isPlaying && currentSong?.preview_url && !sdk.isPlaying));
+
     const value = {
         isPlaying, currentSong, currentTime, duration, volume,
         playlist, playlistIndex, shuffle, repeat, isLoading, playbackError, toast,
@@ -371,7 +381,8 @@ export const MusicProvider = ({ children }) => {
         handleNext, handlePrevious, seek, setVolume, rateSong, stop,
         setShuffle, setRepeat, setPlaylist,
         clearError: () => setPlaybackError(null),
-        audioRef
+        audioRef,
+        currentAmplitude: realAmplitude // Expose to consumers
     };
 
     return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;

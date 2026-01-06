@@ -7,6 +7,12 @@ import { MUSIC_API_URL } from '@/constants/music';
  */
 export const useAudioPlayer = (onEnded) => {
     const audioRef = useRef(new Audio());
+
+    useEffect(() => {
+        // Enable Cross-Origin for Web Audio API analysis
+        audioRef.current.crossOrigin = "anonymous";
+    }, []);
+
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);

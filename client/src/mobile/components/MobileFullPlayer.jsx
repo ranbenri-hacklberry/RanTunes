@@ -24,7 +24,8 @@ const MobileFullPlayer = ({ onClose }) => {
         rateSong,
         playlist,
         playlistIndex,
-        playSong
+        playSong,
+        currentAmplitude // Get real audio data
     } = useMusic();
 
     const [isScrubbing, setIsScrubbing] = useState(false);
@@ -143,7 +144,7 @@ const MobileFullPlayer = ({ onClose }) => {
 
                 {/* 2. Analog Amplifier - Visualizer ONLY */}
                 <div className="w-full max-w-[400px] mx-auto mb-6 shrink-0">
-                    <AnalogAmplifier isPlaying={isPlaying} />
+                    <AnalogAmplifier isPlaying={isPlaying} realAmplitude={currentAmplitude} />
                 </div>
 
                 {/* 3. Song Carousel (Mini Player Style) */}
