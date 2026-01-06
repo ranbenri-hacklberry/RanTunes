@@ -114,7 +114,19 @@ export const useAlbums = () => {
                 .order('position');
 
             if (error) throw error;
-            return (data || []).map(ps => ps.song).filter(Boolean);
+            return (data || []).map(ps => {
+                if (ps.song) return ps.song;
+
+                // Fallback to metadata stored in playlist_songs if join failed
+                return {
+                    id: ps.id, // Use the join record ID
+                    song_id: ps.song_id,
+                    title: ps.song_title || 'Unknown Title',
+                    file_path: ps.song_id, // Assuming it's a Spotify URI if not in DB
+                    artist: { name: ps.song_artist || 'Unknown Artist' },
+                    album: { name: '', cover_url: ps.song_cover_url }
+                };
+            });
         } catch (err) {
             console.error('Error fetching playlist songs:', err);
             return [];
@@ -309,9 +321,11 @@ export const useAlbums = () => {
             const userId = currentUser?.id;
             if (!userId) throw new Error('User not authenticated');
 
-            console.log('➕ Adding Spotify playlist:', spotifyPlaylist.name);
+            console.log('➕ Adding Spotify playlist:', spotifyPlaylist.name, 'with', tracks.length, 'tracks');
 
-            // Create playlist record
+            const businessId = currentUser?.business_id || null;
+
+            // 1. Create playlist record
             const { data: playlistData, error: playlistError } = await supabase
                 .from('rantunes_playlists')
                 .insert({
@@ -326,87 +340,92 @@ export const useAlbums = () => {
 
             if (playlistError) throw playlistError;
 
-            // Add tracks to playlist
+            // 2. Add tracks to playlist
             if (tracks.length > 0) {
-                const businessId = currentUser?.business_id || null;
+                // Collect all unique artists
+                const artistNames = [...new Set(tracks.map(t => t.artists?.[0]?.name || 'Unknown'))];
 
-                // First, ensure all songs exist in rantunes_songs
-                for (let i = 0; i < tracks.length; i++) {
-                    const track = tracks[i];
-                    if (!track?.uri) continue;
+                // Fetch existing artists
+                let { data: existingArtists } = await supabase
+                    .from('rantunes_artists')
+                    .select('id, name')
+                    .in('name', artistNames)
+                    .filter('business_id', businessId ? 'eq' : 'is', businessId || null);
 
-                    // Get or create artist
-                    const artistName = track.artists?.[0]?.name || 'אמן לא ידוע';
-                    let artistQuery = supabase
+                const artistMap = {};
+                (existingArtists || []).forEach(a => artistMap[a.name] = a.id);
+
+                // Create missing artists
+                const missingArtistNames = artistNames.filter(name => !artistMap[name]);
+                if (missingArtistNames.length > 0) {
+                    const { data: newArtists } = await supabase
                         .from('rantunes_artists')
-                        .select('id')
-                        .eq('name', artistName);
+                        .insert(missingArtistNames.map(name => ({ name, business_id: businessId })))
+                        .select('id, name');
 
-                    if (businessId) {
-                        artistQuery = artistQuery.eq('business_id', businessId);
-                    } else {
-                        artistQuery = artistQuery.is('business_id', null);
-                    }
+                    (newArtists || []).forEach(a => artistMap[a.name] = a.id);
+                }
 
-                    let { data: artistData } = await artistQuery.maybeSingle();
+                // Collect all unique tracks by URI
+                const trackUris = [...new Set(tracks.map(t => t.uri))];
 
-                    if (!artistData) {
-                        const { data: newArtist } = await supabase
-                            .from('rantunes_artists')
-                            .insert({ name: artistName, business_id: businessId })
-                            .select('id')
-                            .single();
-                        artistData = newArtist;
-                    }
+                // Fetch existing songs
+                let { data: existingSongs } = await supabase
+                    .from('rantunes_songs')
+                    .select('id, file_path')
+                    .in('file_path', trackUris)
+                    .filter('business_id', businessId ? 'eq' : 'is', businessId || null);
 
-                    // Check if song already exists
-                    let songQuery = supabase
-                        .from('rantunes_songs')
-                        .select('id')
-                        .eq('file_path', track.uri);
+                const songMap = {};
+                (existingSongs || []).forEach(s => songMap[s.file_path] = s.id);
 
-                    if (businessId) {
-                        songQuery = songQuery.eq('business_id', businessId);
-                    } else {
-                        songQuery = songQuery.is('business_id', null);
-                    }
-
-                    let { data: songData } = await songQuery.maybeSingle();
-
-                    if (!songData) {
-                        // Create song
-                        const { data: newSong } = await supabase
-                            .from('rantunes_songs')
-                            .insert({
-                                title: track.name,
-                                artist_id: artistData?.id,
-                                track_number: i + 1,
-                                duration_seconds: Math.round((track.duration_ms || 0) / 1000),
-                                file_path: track.uri,
-                                file_name: track.name,
-                                business_id: businessId
-                            })
-                            .select('id')
-                            .single();
-                        songData = newSong;
-                    }
-
-                    // Add song to playlist
-                    if (songData?.id) {
-                        await supabase
-                            .from('rantunes_playlist_songs')
-                            .insert({
-                                playlist_id: playlistData.id,
-                                song_id: songData.id,
-                                song_title: track.name,
-                                song_artist: artistName,
-                                song_cover_url: track.album?.images?.[0]?.url || null,
-                                position: i + 1
-                            });
+                // Create missing songs
+                const missingTracks = tracks.filter(t => !songMap[t.uri]);
+                // We need to deduplicate missingTracks by uri before insert
+                const uniqueMissingTracks = [];
+                const seenUris = new Set();
+                for (const t of missingTracks) {
+                    if (!seenUris.has(t.uri)) {
+                        uniqueMissingTracks.push(t);
+                        seenUris.add(t.uri);
                     }
                 }
 
-                console.log(`✅ Added ${tracks.length} tracks to playlist: ${spotifyPlaylist.name}`);
+                if (uniqueMissingTracks.length > 0) {
+                    // Split into chunks of 50 to avoid payload limits if needed
+                    const { data: newSongs } = await supabase
+                        .from('rantunes_songs')
+                        .insert(uniqueMissingTracks.map((t, idx) => ({
+                            title: t.name,
+                            artist_id: artistMap[t.artists?.[0]?.name || 'Unknown'],
+                            track_number: 1, // We don't have true album track numbers here easily
+                            duration_seconds: Math.round((t.duration_ms || 0) / 1000),
+                            file_path: t.uri,
+                            file_name: t.name,
+                            business_id: businessId
+                        })))
+                        .select('id, file_path');
+
+                    (newSongs || []).forEach(s => songMap[s.file_path] = s.id);
+                }
+
+                // 3. Batch insert into rantunes_playlist_songs
+                const playlistSongsToInsert = tracks.map((t, index) => ({
+                    playlist_id: playlistData.id,
+                    song_id: songMap[t.uri] || t.uri, // Fallback to URI if somehow missed
+                    song_title: t.name,
+                    song_artist: t.artists?.[0]?.name || 'Unknown',
+                    song_cover_url: t.album?.images?.[0]?.url || null,
+                    position: index + 1
+                }));
+
+                const { error: batchError } = await supabase
+                    .from('rantunes_playlist_songs')
+                    .insert(playlistSongsToInsert);
+
+                if (batchError) throw batchError;
+
+                console.log(`✅ Success! Added ${tracks.length} tracks to playlist: ${spotifyPlaylist.name}`);
             }
 
             await fetchPlaylists();

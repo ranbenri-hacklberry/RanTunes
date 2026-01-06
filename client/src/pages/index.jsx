@@ -256,7 +256,7 @@ const MusicPageContent = () => {
                             <Music className="w-6 h-6 text-purple-400" />
                             <h1 className="text-white text-xl font-bold">RanTunes</h1>
                         </div>
-                        <span className="text-white/30 text-xs mr-8">v0.9.5</span>
+                        <span className="text-white/30 text-xs mr-8">v0.9.6</span>
                     </div>
                     <div className="hidden lg:block">
                         <MiniMusicPlayer />
