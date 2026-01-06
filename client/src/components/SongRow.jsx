@@ -88,4 +88,12 @@ const SongRow = ({
     );
 };
 
-export default SongRow;
+// Memoized for performance - re-render only when song or playing state changes
+export default React.memo(SongRow, (prevProps, nextProps) => {
+    return (
+        prevProps.song?.id === nextProps.song?.id &&
+        prevProps.song?.myRating === nextProps.song?.myRating &&
+        prevProps.isCurrentSong === nextProps.isCurrentSong &&
+        prevProps.isPlaying === nextProps.isPlaying
+    );
+});

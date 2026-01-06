@@ -129,4 +129,4 @@ const MiniMusicPlayer = ({ onClick }) => {
     );
 };
 
-export default MiniMusicPlayer;
+export default React.memo(MiniMusicPlayer);

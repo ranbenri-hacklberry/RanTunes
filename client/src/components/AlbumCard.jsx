@@ -96,4 +96,7 @@ const AlbumCard = ({
     );
 };
 
-export default AlbumCard;
+// Memoized for performance - only re-render when album.id changes
+export default React.memo(AlbumCard, (prevProps, nextProps) => {
+    return prevProps.album?.id === nextProps.album?.id;
+});

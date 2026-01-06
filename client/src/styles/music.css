@@ -383,6 +383,8 @@
 @media (max-width: 768px) {
   .music-mini-bar {
     padding: 6px 12px;
+    /* Safe area for mobile devices with notches/home bars */
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
   }
 
   .music-mini-albumart {
@@ -393,6 +395,16 @@
   .music-mini-btn {
     width: 28px;
     height: 28px;
+  }
+}
+
+/* Desktop: Mini-player can be static in sidebar instead of fixed overlay */
+@media (min-width: 1024px) {
+  .music-mini-bar.static-desktop {
+    position: static !important;
+    z-index: 10 !important;
+    border-radius: 12px;
+    margin: 8px;
   }
 }
 
