@@ -226,28 +226,44 @@ export const useAlbums = () => {
                 const tracks = tracksResponse?.items || [];
 
                 if (tracks.length > 0) {
-                    const songsToInsert = tracks.map((track, index) => ({
-                        title: track.name,
-                        album_id: albumData.id,
-                        artist_id: artistData.id,
-                        track_number: track.track_number || index + 1,
-                        duration_seconds: Math.round((track.duration_ms || 0) / 1000),
-                        file_path: track.uri, // spotify:track:xxx
-                        file_name: track.name,
-                        preview_url: track.preview_url,
-                        business_id: businessId
-                    }));
+                    // Insert songs one by one to handle duplicates gracefully
+                    let addedCount = 0;
+                    for (const track of tracks) {
+                        const songData = {
+                            title: track.name,
+                            album_id: albumData.id,
+                            artist_id: artistData.id,
+                            track_number: track.track_number || (tracks.indexOf(track) + 1),
+                            duration_seconds: Math.round((track.duration_ms || 0) / 1000),
+                            file_path: track.uri, // spotify:track:xxx
+                            file_name: track.name,
+                            business_id: businessId
+                        };
 
-                    // Upsert songs (ignore conflicts on file_path)
-                    const { error: songsError } = await supabase
-                        .from('rantunes_songs')
-                        .upsert(songsToInsert, { onConflict: 'file_path, business_id' });
+                        // Check if song already exists
+                        let existsQuery = supabase
+                            .from('rantunes_songs')
+                            .select('id')
+                            .eq('file_path', track.uri);
 
-                    if (songsError) {
-                        console.error('Error saving tracks:', songsError);
-                    } else {
-                        console.log(`✅ Added ${tracks.length} tracks for album: ${spotifyAlbum.name}`);
+                        if (businessId) {
+                            existsQuery = existsQuery.eq('business_id', businessId);
+                        } else {
+                            existsQuery = existsQuery.is('business_id', null);
+                        }
+
+                        const { data: existingSong } = await existsQuery.maybeSingle();
+
+                        if (!existingSong) {
+                            const { error: songError } = await supabase
+                                .from('rantunes_songs')
+                                .insert(songData);
+
+                            if (!songError) addedCount++;
+                        }
                     }
+
+                    console.log(`✅ Added ${addedCount} tracks for album: ${spotifyAlbum.name}`);
                 }
             } catch (trackError) {
                 console.error('Error fetching/saving tracks:', trackError);
