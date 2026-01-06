@@ -59,17 +59,28 @@ export const MusicProvider = ({ children }) => {
     useEffect(() => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
         if (isSpotify && sdk.isReady) {
-            // Only sync isPlaying from SDK if we AREN'T in a loading state
-            // and add a small delay after loading to let SDK catch up
+            // 1. Sync Playback State
             if (!isLoading) {
-                // If it was just loading, wait 1s before trusting SDK's isPlaying state
-                // This prevents the "start-stop-start" flicker
                 setIsPlaying(sdk.isPlaying);
             }
             if (sdk.position > 0) setCurrentTime(sdk.position / 1000);
             if (sdk.duration > 0) setDuration(sdk.duration / 1000);
+
+            // 2. Sync Metadata (Handle auto-advance/external changes)
+            if (sdk.currentTrack) {
+                const spotifyUri = `spotify:track:${sdk.currentTrack.id}`;
+                // If the URI from SDK doesn't match our currentSong, update it
+                if (currentSong.file_path !== spotifyUri) {
+                    const matchedSong = playlist.find(s => s.file_path === spotifyUri);
+                    if (matchedSong) {
+                        setCurrentSong(matchedSong);
+                        const idx = playlist.findIndex(s => s.id === matchedSong.id);
+                        if (idx >= 0) setPlaylistIndex(idx);
+                    }
+                }
+            }
         }
-    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, currentSong, isLoading]);
+    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, currentSong, isLoading, playlist]);
 
     const showToast = useCallback((message, type = 'info') => {
         setToast({ message, type, id: Date.now() });
