@@ -80,9 +80,18 @@ export function useSpotifyPlayer() {
             // Playback status updates
             spotifyPlayer.addListener('player_state_changed', state => {
                 if (!state) {
+                    console.log('🎵 [SpotifyPlayer] player_state_changed: No state (device not active)');
                     isActiveDevice.current = false;
                     return;
                 }
+
+                console.log('🎵 [SpotifyPlayer] player_state_changed:', {
+                    paused: state.paused,
+                    position: state.position,
+                    duration: state.duration,
+                    track: state.track_window?.current_track?.name,
+                    volume: state.volume
+                });
 
                 isActiveDevice.current = true;
                 setCurrentTrack(state.track_window.current_track);
@@ -99,6 +108,11 @@ export function useSpotifyPlayer() {
                 setDeviceId(device_id);
                 setIsReady(true);
                 isActiveDevice.current = false;
+
+                // Ensure volume is set to audible level
+                spotifyPlayer.setVolume(0.8).then(() => {
+                    console.log('🎵 [SpotifyPlayer] Volume set to 80%');
+                });
             });
 
             // Not Ready
