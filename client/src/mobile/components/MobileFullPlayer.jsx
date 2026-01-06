@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, MoreHorizontal, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useMusic } from '@/context/MusicContext';
 import VinylTurntable from '@/components/VinylTurntable';
+import { getSystemDirection, isSystemRTL } from '@/lib/localeUtils';
 
 const MobileFullPlayer = ({ onClose }) => {
     const {
@@ -23,6 +24,13 @@ const MobileFullPlayer = ({ onClose }) => {
 
     const [isScrubbing, setIsScrubbing] = useState(false);
     const [scrubValue, setScrubValue] = useState(0);
+
+    // Dynamic direction based on system language
+    const direction = useMemo(() => getSystemDirection(), []);
+    const rtl = useMemo(() => isSystemRTL(), []);
+    const labels = useMemo(() => ({
+        nowPlaying: rtl ? 'מנגן כעת' : 'Now Playing'
+    }), [rtl]);
 
     useEffect(() => {
         if (!isScrubbing) {
@@ -55,14 +63,14 @@ const MobileFullPlayer = ({ onClose }) => {
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed inset-0 z-50 bg-[#000000] flex flex-col"
-            dir="rtl"
+            dir={direction}
         >
             {/* Header */}
             <div className="flex items-center justify-between p-6 pt-12">
                 <button onClick={onClose} className="text-white">
                     <ChevronDown size={28} />
                 </button>
-                <span className="text-xs font-bold tracking-widest uppercase text-white/50">מנגן כעת</span>
+                <span className="text-xs font-bold tracking-widest uppercase text-white/50">{labels.nowPlaying}</span>
                 <button className="text-white">
                     <MoreHorizontal size={24} />
                 </button>
