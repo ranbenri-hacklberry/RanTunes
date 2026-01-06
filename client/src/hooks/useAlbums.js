@@ -155,19 +155,26 @@ export const useAlbums = () => {
             // 1. Ensure artist exists (or get existing)
             const artistName = spotifyAlbum.artists?.[0]?.name || 'אמן לא ידוע';
 
-            // First try to find existing artist
+            // First try to find existing artist (handle NULL business_id properly)
             let artistData;
-            const { data: existingArtist } = await supabase
+            let artistQuery = supabase
                 .from('rantunes_artists')
                 .select('*')
-                .eq('name', artistName)
-                .eq('business_id', businessId)
-                .maybeSingle();
+                .eq('name', artistName);
+
+            // Handle NULL business_id - use .is() for NULL comparisons
+            if (businessId) {
+                artistQuery = artistQuery.eq('business_id', businessId);
+            } else {
+                artistQuery = artistQuery.is('business_id', null);
+            }
+
+            const { data: existingArtist } = await artistQuery.maybeSingle();
 
             if (existingArtist) {
                 artistData = existingArtist;
             } else {
-                // Create new artist (without folder_path since column doesn't exist)
+                // Create new artist
                 const { data: newArtist, error: artistError } = await supabase
                     .from('rantunes_artists')
                     .insert({
@@ -182,20 +189,35 @@ export const useAlbums = () => {
             }
 
 
-            // 2. Create album record
-            const { data: albumData, error: albumError } = await supabase
-                .from('rantunes_albums')
-                .upsert({
-                    name: spotifyAlbum.name,
-                    artist_id: artistData.id,
-                    cover_url: spotifyAlbum.images?.[0]?.url || null,
-                    folder_path: `spotify:album:${spotifyAlbum.id}`,
-                    business_id: businessId
-                }, { onConflict: 'name, artist_id' })
-                .select()
-                .single();
+            // 2. Create or update album record (use folder_path as unique constraint)
+            const spotifyFolderPath = `spotify:album:${spotifyAlbum.id}`;
 
-            if (albumError) throw albumError;
+            // Check if album already exists
+            const { data: existingAlbum } = await supabase
+                .from('rantunes_albums')
+                .select('*')
+                .eq('folder_path', spotifyFolderPath)
+                .maybeSingle();
+
+            let albumData;
+            if (existingAlbum) {
+                albumData = existingAlbum;
+            } else {
+                const { data: newAlbum, error: albumError } = await supabase
+                    .from('rantunes_albums')
+                    .insert({
+                        name: spotifyAlbum.name,
+                        artist_id: artistData.id,
+                        cover_url: spotifyAlbum.images?.[0]?.url || null,
+                        folder_path: spotifyFolderPath,
+                        business_id: businessId
+                    })
+                    .select()
+                    .single();
+
+                if (albumError) throw albumError;
+                albumData = newAlbum;
+            }
 
             // 3. Fetch and save album tracks from Spotify
             try {
