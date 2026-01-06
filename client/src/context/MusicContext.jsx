@@ -61,7 +61,7 @@ export const MusicProvider = ({ children }) => {
     // Sync state from Spotify SDK
     useEffect(() => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
-        if (isSpotify && sdk.isReady) {
+        if (isSpotify && sdk.isReady && !sdk.error) {
             // 1. Sync Playback State
             const now = Date.now();
             const recentlyLoaded = now - lastLoadTimeRef.current < 2000;

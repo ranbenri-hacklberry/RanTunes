@@ -43,6 +43,8 @@ export function useSpotifyPlayer() {
             if (!token) {
                 console.error('🎵 [SpotifyPlayer] ERROR: No Spotify token available!');
                 setError('No Spotify token available');
+                // Don't initialize player if no token, but keep state valid
+                setPlayer(null);
                 return;
             }
 
