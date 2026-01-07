@@ -57,6 +57,11 @@ export const MusicProvider = ({ children }) => {
         }
     }, [currentSong, sdk, setVolume]);
 
+    // 4. Shared Display State (Synchronized from either Source)
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+
     // Keep transitionPhase in sync with playing state when not manually transitioning
     useEffect(() => {
         if (isManuallyTransitioningRef.current) return;
@@ -115,11 +120,6 @@ export const MusicProvider = ({ children }) => {
             isManuallyTransitioningRef.current = false;
         }
     }, [currentSong, isPlaying, sdk, setVolume, updateVolume]);
-
-    // 4. Shared Display State (Synchronized from either Source)
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
 
     // Sync state from Local Audio
     useEffect(() => {
