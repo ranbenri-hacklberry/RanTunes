@@ -165,7 +165,7 @@ const MobileLayout = () => {
                                 {/* Version */}
                                 <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
                                     <span className="text-white/70 text-sm">{rtl ? 'גרסה' : 'Version'}</span>
-                                    <span className="text-white/50 text-sm font-mono">1.2.0</span>
+                                    <span className="text-white/50 text-sm font-mono">1.2.5</span>
                                 </div>
 
                                 {/* Logout Button */}
