@@ -102,6 +102,7 @@ export const MusicProvider = ({ children }) => {
             await new Promise(r => setTimeout(r, 500));
 
             // 3. Set volume immediately and resume
+            // No fade-in as requested, just a clean start
             setTransitionPhase('playing');
             if (sdk.isReady) sdk.setVolume(originalVolume);
             setVolume(originalVolume);

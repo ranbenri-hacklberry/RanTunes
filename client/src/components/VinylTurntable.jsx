@@ -31,12 +31,7 @@ const VinylTurntable = ({ song, isPlaying, albumArt, transitionPhase = 'playing'
         return isPlaying || transitionPhase === 'fading_out' || transitionPhase === 'starting';
     }, [isPlaying, transitionPhase]);
 
-    const rotationSpeed = useMemo(() => {
-        if (transitionPhase === 'fading_out') return 4; // Slow
-        if (transitionPhase === 'starting') return 2.5; // Med
-        if (transitionPhase === 'playing' || isPlaying) return 1.8; // Fast (33 RPM)
-        return 1.8;
-    }, [transitionPhase, isPlaying]);
+    const rotationSpeed = 1.7647; // Precisely 34 RPM (60 / 34)
 
     const armPosition = useMemo(() => {
         if (transitionPhase === 'buffering' || transitionPhase === 'stopped') return 0; // At rest
