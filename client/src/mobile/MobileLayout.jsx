@@ -24,6 +24,21 @@ const MobileLayout = () => {
     const direction = useMemo(() => getSystemDirection(), []);
     const rtl = useMemo(() => isSystemRTL(), []);
 
+    // Auto-redirect to Spotify login if not connected
+    useEffect(() => {
+        // Skip if we're returning from OAuth callback
+        if (window.location.pathname.includes('/callback')) return;
+
+        // Check if already handling OAuth
+        if (sessionStorage.getItem('spotify_code_verifier')) return;
+
+        // If not connected to Spotify, redirect to login
+        if (!SpotifyService.isSpotifyLoggedIn()) {
+            console.log('🎵 [MobileLayout] Not connected to Spotify, redirecting to login...');
+            SpotifyService.loginWithSpotify();
+        }
+    }, []);
+
     // When player tab is selected, open full player
     const handleTabChange = useCallback((tabId) => {
         if (tabId === 'player') {
