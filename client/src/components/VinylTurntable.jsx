@@ -27,20 +27,20 @@ const VinylTurntable = ({ song, isPlaying, albumArt, transitionPhase = 'playing'
     const isRotating = useMemo(() => {
         if (transitionPhase === 'stopped') return false;
         if (transitionPhase === 'buffering') return false;
-        return isPlaying || transitionPhase === 'starting' || transitionPhase === 'fading_out';
+        // Keep rotating during fading_out but stop if explicitly stopped or buffering
+        return isPlaying || transitionPhase === 'fading_out' || transitionPhase === 'starting';
     }, [isPlaying, transitionPhase]);
 
     const rotationSpeed = useMemo(() => {
-        if (transitionPhase === 'playing') return 1.8; // seconds per rotation
-        if (transitionPhase === 'starting') return 3;   // Start slow
-        if (transitionPhase === 'fading_out') return 5; // Slow down
-        return 0;
-    }, [transitionPhase]);
+        if (transitionPhase === 'fading_out') return 4; // Slow
+        if (transitionPhase === 'starting') return 2.5; // Med
+        if (transitionPhase === 'playing' || isPlaying) return 1.8; // Fast (33 RPM)
+        return 1.8;
+    }, [transitionPhase, isPlaying]);
 
     const armPosition = useMemo(() => {
-        // Degrees for rotation: 0 is vertical (rest), ~25-30 is on record
-        if (transitionPhase === 'fading_out') return 10; // Moving back
         if (transitionPhase === 'buffering' || transitionPhase === 'stopped') return 0; // At rest
+        if (transitionPhase === 'fading_out') return 12; // Moving back
         if (transitionPhase === 'starting') return 20; // Landing
         if (isPlaying || transitionPhase === 'playing') return 28; // Playing
         return 0;
@@ -51,20 +51,11 @@ const VinylTurntable = ({ song, isPlaying, albumArt, transitionPhase = 'playing'
             <div className="vinyl-base">
                 {/* Platter */}
                 <div className="vinyl-platter-ring">
-                    {/* Vinyl disc with framer-motion for speed control */}
-                    <motion.div
-                        className="vinyl-disc"
-                        animate={{
-                            rotate: isRotating ? 360 : 0
-                        }}
-                        transition={{
-                            rotate: {
-                                repeat: Infinity,
-                                duration: rotationSpeed,
-                                ease: "linear"
-                            },
-                            // When stopping/starting, ease the speed change
-                            duration: 0.5
+                    {/* Vinyl disc - Using CSS for infinite rotation to avoid Framer Motion reset jumps */}
+                    <div
+                        className={`vinyl-disc music-vinyl-spin ${!isRotating ? 'paused' : ''}`}
+                        style={{
+                            '--rotation-speed': `${rotationSpeed}s`
                         }}
                     >
                         {/* Grooves */}
@@ -97,7 +88,7 @@ const VinylTurntable = ({ song, isPlaying, albumArt, transitionPhase = 'playing'
 
                         {/* Shine effect */}
                         <div className="vinyl-reflection"></div>
-                    </motion.div>
+                    </div>
                 </div>
 
                 {/* Tonearm with smooth motion */}

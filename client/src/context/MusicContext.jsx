@@ -94,32 +94,21 @@ export const MusicProvider = ({ children }) => {
                 await new Promise(r => setTimeout(r, fadeDuration / steps));
             }
 
-            // 2. Buffer / Switch Song / Change Label
+            // 2. Buffer / Switch Song
             setTransitionPhase('buffering');
             await action();
 
-            // Allow some time for metadata to update and audio to buffer
-            // This masks the "blank" gap between tracks
-            await new Promise(r => setTimeout(r, 1200));
+            // Short natural delay (0.5s) for a seamless song-change feel
+            await new Promise(r => setTimeout(r, 500));
 
-            // 3. Accelerate Vinyl & Fade In
-            setTransitionPhase('starting');
-            for (let i = 0; i <= steps; i++) {
-                const v = (i / steps) * originalVolume;
-                // Note: use immediate currentSong context if possible, 
-                // but usually the players are triggered by play() calls inside action()
-                if (currentSong?.file_path || true) { // Always try to set volume on active player
-                    if (sdk.isReady) sdk.setVolume(v);
-                    setVolume(v);
-                }
-                await new Promise(r => setTimeout(r, fadeDuration / steps));
-            }
-
+            // 3. Set volume immediately and resume
             setTransitionPhase('playing');
+            if (sdk.isReady) sdk.setVolume(originalVolume);
+            setVolume(originalVolume);
         } finally {
             isManuallyTransitioningRef.current = false;
         }
-    }, [currentSong, isPlaying, sdk, setVolume, updateVolume]);
+    }, [currentSong, isPlaying, sdk, setVolume]);
 
     // Sync state from Local Audio
     useEffect(() => {
