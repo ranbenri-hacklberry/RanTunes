@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronDown, MoreHorizontal, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, ThumbsUp, ThumbsDown, Monitor } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, ThumbsUp, ThumbsDown, Monitor, Settings } from 'lucide-react';
 import { useMusic } from '@/context/MusicContext';
 import VinylTurntable from '@/components/VinylTurntable';
 import SpotifyDevicePicker from '@/components/SpotifyDevicePicker';
@@ -109,15 +109,37 @@ const MobileFullPlayer = ({ onClose }) => {
             }}
             dir={direction}
         >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 pt-12 shrink-0 z-30">
-                <button onClick={onClose} className="text-white/80 hover:text-white">
-                    <ChevronDown size={28} />
+            {/* Premium Top Bar */}
+            <div className="flex items-center justify-between p-4 pt-12 shrink-0 z-30 bg-gradient-to-b from-black/40 to-transparent">
+                <button onClick={onClose} className="p-2 -ml-2 text-white/80 hover:text-white transition-colors">
+                    <ChevronDown size={32} />
                 </button>
-                <span className="text-xs font-bold tracking-widest uppercase text-white/50">{labels.nowPlaying}</span>
-                <button className="text-white/80 hover:text-white">
-                    <MoreHorizontal size={24} />
-                </button>
+
+                <div className="flex flex-col items-center">
+                    <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/30 mb-1">{labels.nowPlaying}</span>
+                    <div className="flex items-center gap-2">
+                        {currentSong?.file_path?.startsWith('spotify:') && (
+                            <div className="flex items-center gap-1.5 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                                <span className="text-[10px] font-bold text-green-400 uppercase tracking-tight">Spotify</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                    {currentSong?.file_path?.startsWith('spotify:') && (
+                        <button
+                            onClick={() => setShowDevicePicker(true)}
+                            className="p-2 text-green-400 hover:text-green-300 transition-colors"
+                        >
+                            <Monitor size={22} />
+                        </button>
+                    )}
+                    <button className="p-2 text-white/80 hover:text-white transition-colors">
+                        <Settings size={22} />
+                    </button>
+                </div>
             </div>
 
             {/* Background Album Art Blur */}
@@ -229,17 +251,6 @@ const MobileFullPlayer = ({ onClose }) => {
                     />
                     <div className="flex justify-between text-[10px] text-white/40 mt-1 font-mono" dir="ltr">
                         <span>{formatTime(isScrubbing ? scrubValue : currentTime)}</span>
-                        <div className="flex items-center gap-1 text-green-400 font-bold">
-                            {currentSong?.file_path?.startsWith('spotify:') && (
-                                <button
-                                    onClick={() => setShowDevicePicker(true)}
-                                    className="flex items-center gap-1 active:scale-95 transition-transform"
-                                >
-                                    <Monitor size={12} />
-                                    <span>Connect</span>
-                                </button>
-                            )}
-                        </div>
                         <span>{formatTime(duration)}</span>
                     </div>
                 </div>

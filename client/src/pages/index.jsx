@@ -4,7 +4,7 @@ import {
     Music, Disc, ListMusic, Search, Upload, RefreshCw,
     ArrowRight, Sparkles, User, Play, FolderOpen, Heart,
     Pause, SkipForward, SkipBack, Trash2, X, HardDrive, AlertCircle, LogOut, Pencil,
-    ThumbsUp, ThumbsDown, Monitor
+    ThumbsUp, ThumbsDown, Monitor, Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMusic } from '@/context/MusicContext';
@@ -334,47 +334,66 @@ const MusicPageContent = () => {
 
     return (
         <div className="h-screen flex flex-col music-gradient-dark overflow-hidden" dir="rtl">
-            {/* Header */}
-            <header className="flex items-center justify-between p-4 border-b border-white/10 bg-black/20 backdrop-blur-md z-10">
-                <div className="flex items-center gap-3">
+            {/* Premium Responsive Header */}
+            <header className="flex flex-col lg:flex-row items-center justify-between p-4 gap-4 border-b border-white/10 bg-black/20 backdrop-blur-md z-10 shrink-0">
+                {/* Branding & Mini Player (Desktop) / Status (Mobile) */}
+                <div className="w-full lg:w-auto flex items-center justify-between lg:justify-start gap-4">
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                             <Music className="w-6 h-6 text-purple-400" />
                             <h1 className="text-white text-xl font-bold">RanTunes</h1>
                         </div>
-                        <span className="text-white/30 text-xs mr-8">v1.2.5</span>
+                        <span className="text-white/30 text-[10px] mr-8">v1.4.0</span>
                     </div>
+
+                    {/* Spotify Status Indicator (Mobile-only) */}
+                    <div className="lg:hidden flex items-center gap-2">
+                        {musicSource === 'spotify' && isSpotifyConnected && (
+                            <button
+                                onClick={() => setShowDevicePicker(true)}
+                                className="flex items-center gap-1.5 bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30"
+                            >
+                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                <span className="text-[10px] font-bold text-green-400 uppercase tracking-wider">Connected</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setEditMode(!editMode)}
+                            className={`p-2 rounded-xl transition-all ${editMode ? 'bg-red-500/30 text-red-400' : 'text-white/40'}`}
+                        >
+                            <Settings className="w-5 h-5" />
+                        </button>
+                    </div>
+
                     <div className="hidden lg:block">
                         <MiniMusicPlayer onClick={handleMiniPlayerClick} />
                     </div>
                 </div>
 
-                <div className="flex-1 max-w-md mx-4">
-                    <div className="relative">
-                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                {/* Search Bar (Responsive) */}
+                <div className="w-full lg:flex-1 lg:max-w-md">
+                    <div className="relative group">
+                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 group-focus-within:text-purple-400 transition-colors" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="חפש אלבומים, אמנים..."
-                            className="w-full bg-white/10 border border-white/10 rounded-xl py-2 pr-10 pl-4 text-white placeholder-white/40 focus:outline-none focus:border-purple-500"
+                            placeholder="חפש מוזיקה..."
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-2.5 pr-10 pl-4 text-white placeholder-white/20 focus:outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all"
                         />
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Main Actions (Desktop-only) */}
+                <div className="hidden lg:flex items-center gap-2">
                     {musicSource === 'spotify' && isSpotifyConnected && (
                         <div className="flex items-center gap-1 bg-green-500/10 rounded-xl p-1 pr-3 border border-green-500/20">
                             <button
                                 onClick={() => setShowDevicePicker(true)}
                                 className="flex items-center gap-2 text-green-400 text-sm font-medium hover:bg-white/10 px-2 py-1 rounded-lg transition-colors"
-                                title="Spotify Connect"
                             >
-                                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-                                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                                </svg>
-                                <span className="hidden sm:inline">Spotify Connect</span>
                                 <Monitor className="w-4 h-4" />
+                                <span className="text-xs uppercase font-bold tracking-tight">Devices</span>
                             </button>
                             <button
                                 onClick={() => {
@@ -393,48 +412,26 @@ const MusicPageContent = () => {
 
                     <button
                         onClick={() => setEditMode(!editMode)}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${editMode ? 'bg-red-500/30 text-red-400 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'music-glass text-white'}`}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${editMode ? 'bg-red-500/30 text-red-400 border border-red-500/50' : 'music-glass text-white'}`}
+                        title="עריכה"
                     >
                         <Pencil className="w-5 h-5" />
                     </button>
 
-                    <button onClick={refreshAll} className="w-10 h-10 rounded-xl music-glass flex items-center justify-center text-white">
+                    <button onClick={refreshAll} className="w-10 h-10 rounded-xl music-glass flex items-center justify-center text-white" title="רענן">
                         <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
                     </button>
 
                     <button
                         onClick={async () => {
-                            const choice = window.confirm(
-                                '🔄 איפוס מלא?\n\n' +
-                                'לחץ OK למחיקת כל האלבומים והתנתקות מ-Spotify\n' +
-                                'לחץ Cancel רק להתנתקות (בלי למחוק אלבומים)'
-                            );
-
-                            // Clear Spotify tokens
-                            SpotifyService.logout();
-                            localStorage.removeItem('music_source');
-                            localStorage.removeItem('rantunes_user');
-                            localStorage.removeItem('spotify_access_token');
-                            localStorage.removeItem('spotify_refresh_token');
-                            localStorage.removeItem('spotify_token_expiry');
-
-                            if (choice) {
-                                // Full reset - delete all albums, songs, artists
-                                try {
-                                    console.log('🧹 Cleaning database...');
-                                    await supabase.from('rantunes_songs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-                                    await supabase.from('rantunes_albums').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-                                    await supabase.from('rantunes_artists').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-                                    console.log('✅ Database cleaned');
-                                } catch (err) {
-                                    console.error('Error cleaning database:', err);
-                                }
+                            if (window.confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                                SpotifyService.logout();
+                                localStorage.removeItem('music_source');
+                                window.location.reload();
                             }
-
-                            window.location.reload();
                         }}
                         className="w-10 h-10 rounded-xl music-glass flex items-center justify-center text-white hover:text-red-400 transition-colors"
-                        title="איפוס והתנתקות"
+                        title="התנתקות"
                     >
                         <LogOut className="w-5 h-5" />
                     </button>
