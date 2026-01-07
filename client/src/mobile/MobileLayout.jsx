@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import React, { useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, LogOut, X } from 'lucide-react';
 import MobileNavbar from './components/MobileNavbar';
 import MobileMiniPlayer from './components/MobileMiniPlayer';
@@ -23,21 +23,6 @@ const MobileLayout = () => {
     // Get direction based on system language
     const direction = useMemo(() => getSystemDirection(), []);
     const rtl = useMemo(() => isSystemRTL(), []);
-
-    // Auto-redirect to Spotify login if not connected
-    useEffect(() => {
-        // Skip if we're returning from OAuth callback
-        if (window.location.pathname.includes('/callback')) return;
-
-        // Check if already handling OAuth
-        if (sessionStorage.getItem('spotify_code_verifier')) return;
-
-        // If not connected to Spotify, redirect to login
-        if (!SpotifyService.isSpotifyLoggedIn()) {
-            console.log('🎵 [MobileLayout] Not connected to Spotify, redirecting to login...');
-            SpotifyService.loginWithSpotify();
-        }
-    }, []);
 
     // When player tab is selected, open full player
     const handleTabChange = useCallback((tabId) => {
@@ -130,7 +115,7 @@ const MobileLayout = () => {
             <AnimatePresence>
                 {showSettings && (
                     <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
-                        <div className="bg-[#1a1a1a] rounded-3xl w-full max-w-sm border border-white/10 overflow-hidden">
+                        <div className="bg-[#1a1a1a] rounded-3xl w-full max-w-sm border border-white/10 overflow-hidden shadow-2xl">
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 border-b border-white/10">
                                 <h2 className="text-lg font-bold text-white">

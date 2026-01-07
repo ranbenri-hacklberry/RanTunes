@@ -134,12 +134,65 @@ const App = () => {
 };
 
 // Internal wrapper to handle routing logic cleanly
-// NOTE: BrowserRouter is already in main.jsx, DO NOT add another one here!
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MobileLayout from './mobile/MobileLayout';
+import SpotifyService from './lib/spotifyService';
 
 const MobileRouterWrapper = () => {
-    // BrowserRouter is already provided in main.jsx - just render routes
+    const [isVerifying, setIsVerifying] = React.useState(true);
+    const location = useLocation();
+
+    // Global session verification on load
+    React.useEffect(() => {
+        const verifySession = async () => {
+            // Skip verification if on a callback page
+            if (location.pathname.includes('/callback')) {
+                setIsVerifying(false);
+                return;
+            }
+
+            // Skip if already in the middle of OAuth
+            if (sessionStorage.getItem('spotify_code_verifier')) {
+                setIsVerifying(false);
+                return;
+            }
+
+            // Only verify if we're supposed to be using Spotify
+            const musicSource = localStorage.getItem('music_source');
+            if (musicSource !== 'spotify' && !SpotifyService.isSpotifyLoggedIn()) {
+                setIsVerifying(false);
+                return;
+            }
+
+            try {
+                console.log('🎵 [App] Verifying Spotify session...');
+
+                // Real API check
+                await SpotifyService.getCurrentUser();
+
+                console.log('✅ [App] Spotify session verified');
+                setIsVerifying(false);
+            } catch (err) {
+                console.warn('❌ [App] Spotify session invalid, redirecting to login:', err.message);
+                SpotifyService.loginWithSpotify();
+            }
+        };
+
+        verifySession();
+    }, [location.pathname]);
+
+    if (isVerifying) {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center space-y-6">
+                <div className="w-16 h-16 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-white tracking-widest uppercase opacity-50">RanTunes</h1>
+                    <p className="text-white/30 text-xs mt-2 font-mono">Verifying Session...</p>
+                </div>
+            </div>
+        );
+    }
+
     return <AppRoutes />;
 };
 
