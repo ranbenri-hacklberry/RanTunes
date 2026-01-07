@@ -40,12 +40,10 @@ const MobileAlbums = () => {
     const [selectedAlbum, setSelectedAlbum] = useState(null);
     const [albumSongs, setAlbumSongs] = useState([]);
     const [showSpotifySearch, setShowSpotifySearch] = useState(false);
-    const [isSpotifyConnected, setIsSpotifyConnected] = useState(false);
     const [musicSource, setMusicSource] = useState(() => localStorage.getItem('music_source') || null);
 
-    useEffect(() => {
-        setIsSpotifyConnected(SpotifyService.isSpotifyLoggedIn());
-    }, []);
+    // Check Spotify connection on every render - don't cache in state
+    const isSpotifyConnected = SpotifyService.isSpotifyLoggedIn();
 
     // Load songs when album is selected
     useEffect(() => {
