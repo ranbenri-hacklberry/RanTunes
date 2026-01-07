@@ -132,6 +132,76 @@ export const MusicProvider = ({ children }) => {
         return () => clearTimeout(timeoutId);
     }, [currentUser, currentSong, isPlaying, currentTime, duration]);
 
+    // 🎮 LISTEN FOR REMOTE COMMANDS FROM iCaffe MiniMusicPlayer
+    useEffect(() => {
+        if (!currentUser?.email) return;
+
+        const channel = supabase
+            .channel('music-remote-commands')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'music_commands',
+                    filter: `user_email=eq.${currentUser.email}`
+                },
+                async (payload) => {
+                    const cmd = payload.new;
+                    if (!cmd || cmd.processed_at) return;
+
+                    console.log('🎮 Received remote command:', cmd.command);
+
+                    // Execute the command
+                    switch (cmd.command) {
+                        case 'play':
+                            if (!isPlaying) {
+                                const isSpotify = currentSong?.file_path?.startsWith('spotify:');
+                                if (isSpotify && sdk?.isReady) {
+                                    await sdk.resume();
+                                } else {
+                                    resumeLocal?.();
+                                }
+                                setIsPlaying(true);
+                            }
+                            break;
+                        case 'pause':
+                            if (isPlaying) {
+                                const isSpotify = currentSong?.file_path?.startsWith('spotify:');
+                                if (isSpotify && sdk?.isReady) {
+                                    await sdk.pause();
+                                } else {
+                                    pauseLocal?.();
+                                }
+                                setIsPlaying(false);
+                            }
+                            break;
+                        case 'next':
+                            handleNextRef.current?.();
+                            break;
+                        case 'previous':
+                            // Will be implemented if needed
+                            break;
+                    }
+
+                    // Mark command as processed
+                    try {
+                        await supabase
+                            .from('music_commands')
+                            .update({ processed_at: new Date().toISOString() })
+                            .eq('id', cmd.id);
+                    } catch (err) {
+                        console.error('Failed to mark command as processed:', err);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [currentUser?.email, isPlaying, currentSong, sdk]);
+
     const playableSongs = useMemo(() =>
         playlist.filter(s => (s?.myRating || 0) !== 1),
         [playlist]);
