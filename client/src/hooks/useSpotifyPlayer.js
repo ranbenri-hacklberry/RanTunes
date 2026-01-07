@@ -49,8 +49,11 @@ export function useSpotifyPlayer() {
                     return;
                 }
 
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+                const deviceName = isMobile ? 'RanTunes Mobile' : 'RanTunes Desktop';
+
                 const spotifyPlayer = new window.Spotify.Player({
-                    name: 'RanTunes Web Player',
+                    name: deviceName,
                     getOAuthToken: async cb => {
                         try {
                             const freshToken = await getAccessToken();

@@ -338,28 +338,30 @@ const MusicPageContent = () => {
             <header className="flex flex-col lg:flex-row items-center justify-between p-4 gap-4 border-b border-white/10 bg-black/20 backdrop-blur-md z-10 shrink-0">
                 {/* Branding & Mini Player (Desktop) / Status (Mobile) */}
                 <div className="w-full lg:w-auto flex items-center justify-between lg:justify-start gap-4">
-                    <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                            <Music className="w-6 h-6 text-purple-400" />
-                            <h1 className="text-white text-xl font-bold">RanTunes</h1>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                            <Music className="w-6 h-6 text-white" />
                         </div>
-                        <span className="text-white/30 text-[10px] mr-8">v1.4.0</span>
+                        <div className="flex flex-col">
+                            <h1 className="text-white text-lg font-bold leading-tight tracking-tight">RanTunes</h1>
+                            <span className="text-white/30 text-[9px] uppercase tracking-widest font-black">Pro Studio v1.4.1</span>
+                        </div>
                     </div>
 
-                    {/* Spotify Status Indicator (Mobile-only) */}
+                    {/* Spotify Status Indicator & Settings (Mobile-only) */}
                     <div className="lg:hidden flex items-center gap-2">
                         {musicSource === 'spotify' && isSpotifyConnected && (
                             <button
                                 onClick={() => setShowDevicePicker(true)}
-                                className="flex items-center gap-1.5 bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30"
+                                className="flex items-center gap-1.5 bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20 active:scale-95 transition-all"
                             >
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                <span className="text-[10px] font-bold text-green-400 uppercase tracking-wider">Connected</span>
+                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                                <span className="text-[10px] font-bold text-green-400 uppercase tracking-wider">Connect</span>
                             </button>
                         )}
                         <button
                             onClick={() => setEditMode(!editMode)}
-                            className={`p-2 rounded-xl transition-all ${editMode ? 'bg-red-500/30 text-red-400' : 'text-white/40'}`}
+                            className={`p-2.5 rounded-xl transition-all active:scale-95 ${editMode ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/5 border border-white/10 text-white/40'}`}
                         >
                             <Settings className="w-5 h-5" />
                         </button>

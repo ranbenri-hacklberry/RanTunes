@@ -17,8 +17,14 @@ const SpotifyDevicePicker = ({ onClose }) => {
         setIsLoading(false);
     };
 
-    const getDeviceIcon = (type) => {
-        switch (type.toLowerCase()) {
+    const getDeviceIcon = (device) => {
+        const type = device.type?.toLowerCase() || '';
+        const name = device.name?.toLowerCase() || '';
+
+        if (name.includes('mobile')) return Smartphone;
+        if (name.includes('desktop')) return Laptop;
+
+        switch (type) {
             case 'smartphone': return Smartphone;
             case 'computer': return Laptop;
             case 'speaker': return Speaker;
@@ -72,7 +78,7 @@ const SpotifyDevicePicker = ({ onClose }) => {
                     ) : spotifyDevices.length > 0 ? (
                         <div className="space-y-2">
                             {spotifyDevices.map(device => {
-                                const Icon = getDeviceIcon(device.type);
+                                const Icon = getDeviceIcon(device);
                                 return (
                                     <button
                                         key={device.id}
