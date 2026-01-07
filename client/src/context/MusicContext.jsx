@@ -149,6 +149,15 @@ export const MusicProvider = ({ children }) => {
     }, [currentUser, currentSong?.id, isPlaying]);
 
     // 🎮 LISTEN FOR REMOTE COMMANDS FROM iCaffe MiniMusicPlayer
+    // Use refs to avoid reconnecting on every state change
+    const isPlayingRef = useRef(isPlaying);
+    const currentSongRef = useRef(currentSong);
+    const sdkRef = useRef(sdk);
+
+    useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+    useEffect(() => { currentSongRef.current = currentSong; }, [currentSong]);
+    useEffect(() => { sdkRef.current = sdk; }, [sdk]);
+
     useEffect(() => {
         if (!currentUser?.email) return;
 
@@ -168,13 +177,18 @@ export const MusicProvider = ({ children }) => {
 
                     console.log('🎮 Received remote command:', cmd.command);
 
+                    // Use refs for current state
+                    const playing = isPlayingRef.current;
+                    const song = currentSongRef.current;
+                    const spotifySdk = sdkRef.current;
+
                     // Execute the command
                     switch (cmd.command) {
                         case 'play':
-                            if (!isPlaying) {
-                                const isSpotify = currentSong?.file_path?.startsWith('spotify:');
-                                if (isSpotify && sdk?.isReady) {
-                                    await sdk.resume();
+                            if (!playing) {
+                                const isSpotify = song?.file_path?.startsWith('spotify:');
+                                if (isSpotify && spotifySdk?.isReady) {
+                                    await spotifySdk.resume();
                                 } else {
                                     resumeLocal?.();
                                 }
@@ -182,10 +196,10 @@ export const MusicProvider = ({ children }) => {
                             }
                             break;
                         case 'pause':
-                            if (isPlaying) {
-                                const isSpotify = currentSong?.file_path?.startsWith('spotify:');
-                                if (isSpotify && sdk?.isReady) {
-                                    await sdk.pause();
+                            if (playing) {
+                                const isSpotify = song?.file_path?.startsWith('spotify:');
+                                if (isSpotify && spotifySdk?.isReady) {
+                                    await spotifySdk.pause();
                                 } else {
                                     pauseLocal?.();
                                 }
@@ -216,7 +230,7 @@ export const MusicProvider = ({ children }) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentUser?.email, isPlaying, currentSong, sdk]);
+    }, [currentUser?.email]); // Only depends on email - stable connection
 
     const playableSongs = useMemo(() =>
         playlist.filter(s => (s?.myRating || 0) !== 1),
