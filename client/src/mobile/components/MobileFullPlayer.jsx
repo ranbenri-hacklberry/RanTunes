@@ -28,7 +28,9 @@ const MobileFullPlayer = ({ onClose }) => {
         playSong,
         currentAmplitude, // Get real audio data
         trackFeatures,
-        transitionPhase
+        transitionPhase,
+        isRemoteMode,
+        remoteDeviceName
     } = useMusic();
 
     const [isScrubbing, setIsScrubbing] = useState(false);
@@ -121,7 +123,9 @@ const MobileFullPlayer = ({ onClose }) => {
                         {currentSong?.file_path?.startsWith('spotify:') && (
                             <div className="flex items-center gap-1.5 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
                                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                                <span className="text-[10px] font-bold text-green-400 uppercase tracking-tight">Spotify</span>
+                                <span className="text-[10px] font-bold text-green-400 uppercase tracking-tight">
+                                    {isRemoteMode ? `Remote: ${remoteDeviceName || 'Spotify'}` : 'Spotify'}
+                                </span>
                             </div>
                         )}
                     </div>

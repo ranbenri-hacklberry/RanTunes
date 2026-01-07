@@ -47,6 +47,10 @@ export const MusicProvider = ({ children }) => {
     const targetVolumeRef = useRef(0.8);
     const isManuallyTransitioningRef = useRef(false);
 
+    // 5.6 Remote Control State (External Devices)
+    const [isRemoteMode, setIsRemoteMode] = useState(false);
+    const [remoteDeviceName, setRemoteDeviceName] = useState(null);
+
     // Dynamic volume control - sync with targetVolumeRef
     const updateVolume = useCallback((v) => {
         targetVolumeRef.current = v;
@@ -67,6 +71,61 @@ export const MusicProvider = ({ children }) => {
         if (isManuallyTransitioningRef.current) return;
         setTransitionPhase(isPlaying ? 'playing' : 'stopped');
     }, [isPlaying]);
+
+    // 5.7 Intelligent Remote Control / Auto-Sync
+    // Polls Spotify for state if something is playing elsewhere
+    useEffect(() => {
+        if (!SpotifyService.isSpotifyLoggedIn()) return;
+
+        const pollSpotifyState = async () => {
+            try {
+                const state = await SpotifyService.getPlaybackState();
+
+                // If there's an active device and it's NOT our local SDK
+                if (state && state.device && state.device.id !== sdk.deviceId) {
+                    setIsRemoteMode(true);
+                    setRemoteDeviceName(state.device.name);
+
+                    // Sync playback state
+                    setIsPlaying(state.is_playing);
+                    setCurrentTime((state.progress_ms || 0) / 1000);
+                    setDuration((state.item?.duration_ms || 0) / 1000);
+
+                    // Sync metadata if different
+                    const spotifyUri = state.item?.uri;
+                    if (spotifyUri && currentSong?.file_path !== spotifyUri) {
+                        // Try to find in playlist or create a dummy song object
+                        const matchedSong = playlist.find(s => s.file_path === spotifyUri);
+                        if (matchedSong) {
+                            setCurrentSong(matchedSong);
+                        } else if (state.item) {
+                            setCurrentSong({
+                                id: state.item.id,
+                                title: state.item.name,
+                                file_path: state.item.uri,
+                                album: {
+                                    name: state.item.album?.name,
+                                    cover_url: state.item.album?.images?.[0]?.url
+                                },
+                                artist: { name: state.item.artists?.[0]?.name },
+                                duration_seconds: Math.round(state.item.duration_ms / 1000)
+                            });
+                        }
+                    }
+                } else {
+                    setIsRemoteMode(false);
+                    setRemoteDeviceName(null);
+                }
+            } catch (err) {
+                console.warn('Spotify Polling Error:', err);
+            }
+        };
+
+        const interval = setInterval(pollSpotifyState, 5000); // Poll every 5 seconds
+        pollSpotifyState(); // Initial check
+
+        return () => clearInterval(interval);
+    }, [sdk.deviceId, currentSong?.file_path, playlist]);
 
     // Perform smooth fade transition
     const performTransition = useCallback(async (action) => {
@@ -136,11 +195,11 @@ export const MusicProvider = ({ children }) => {
                 setIsPlaying(sdk.isPlaying);
             }
 
-            if (sdk.position > 0) setCurrentTime(sdk.position / 1000);
-            if (sdk.duration > 0) setDuration(sdk.duration / 1000);
+            if (sdk.position > 0 && !isRemoteMode) setCurrentTime(sdk.position / 1000);
+            if (sdk.duration > 0 && !isRemoteMode) setDuration(sdk.duration / 1000);
 
             // 2. Sync Metadata (Handle auto-advance/external changes)
-            if (sdk.currentTrack) {
+            if (sdk.currentTrack && !isRemoteMode) {
                 const spotifyUri = `spotify:track:${sdk.currentTrack.id}`;
                 if (currentSong?.file_path !== spotifyUri) {
                     const matchedSong = playlist.find(s => s.file_path === spotifyUri);
@@ -152,7 +211,7 @@ export const MusicProvider = ({ children }) => {
                 }
             }
         }
-    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, currentSong, isLoading, playlist]);
+    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, currentSong, isLoading, playlist, isRemoteMode]);
 
     const showToast = useCallback((message, type = 'info') => {
         setToast({ message, type, id: Date.now() });
@@ -625,7 +684,9 @@ export const MusicProvider = ({ children }) => {
         trackFeatures,
         spotifyDevices,
         fetchSpotifyDevices,
-        transferPlayback
+        transferPlayback,
+        isRemoteMode,
+        remoteDeviceName
     };
 
     return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, LogOut, X } from 'lucide-react';
+import { Settings, LogOut, X, Music, Monitor, Smartphone } from 'lucide-react';
 import MobileNavbar from './components/MobileNavbar';
 import MobileMiniPlayer from './components/MobileMiniPlayer';
 import MobileFullPlayer from './components/MobileFullPlayer';
@@ -17,7 +17,15 @@ const MobileLayout = () => {
     const [activeTab, setActiveTab] = useState('albums');
     const [isFullPlayerOpen, setIsFullPlayerOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
-    const { currentSong, stop } = useMusic();
+    const [showDevicePicker, setShowDevicePicker] = useState(false);
+
+    const {
+        currentSong,
+        stop,
+        isRemoteMode,
+        remoteDeviceName,
+        fetchSpotifyDevices
+    } = useMusic();
     const { logout: authLogout } = useRanTunesAuth();
 
     // Get direction based on system language
@@ -81,14 +89,46 @@ const MobileLayout = () => {
 
     return (
         <div className="flex flex-col h-screen bg-[#000000] text-white overflow-hidden" dir={direction}>
-            {/* Settings Button - Fixed Top Right/Left */}
-            <button
-                onClick={() => setShowSettings(true)}
-                className="fixed top-4 left-4 z-50 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center active:scale-95 transition-transform"
-                style={{ [rtl ? 'right' : 'left']: '16px', [rtl ? 'left' : 'right']: 'auto' }}
-            >
-                <Settings className="w-5 h-5 text-white/70" />
-            </button>
+            {/* Premium Mobile Top Bar */}
+            <header className="flex items-center justify-between p-4 pt-10 pb-4 bg-black/40 backdrop-blur-xl border-b border-white/5 z-40">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                        <Music className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex flex-col">
+                        <h1 className="text-white text-base font-bold leading-tight">RanTunes</h1>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-white/30 text-[8px] uppercase tracking-widest font-black">Mobile v1.4.2</span>
+                            {isRemoteMode && (
+                                <div className="flex items-center gap-1 bg-green-500/10 px-1.5 py-0.5 rounded-md border border-green-500/20">
+                                    <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse"></div>
+                                    <span className="text-[7px] font-bold text-green-400 uppercase tracking-tighter">Remote</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {isRemoteMode && (
+                        <button
+                            onClick={() => {
+                                fetchSpotifyDevices();
+                                setShowDevicePicker(true);
+                            }}
+                            className="bg-green-500/10 p-2 rounded-xl border border-green-500/20 active:scale-90 transition-transform"
+                        >
+                            <Monitor className="w-5 h-5 text-green-400" />
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setShowSettings(true)}
+                        className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center active:scale-95 transition-all"
+                    >
+                        <Settings className="w-5 h-5 text-white/50" />
+                    </button>
+                </div>
+            </header>
 
             {/* Main Content Area */}
             <div className="flex-1 overflow-y-auto pb-36 no-scrollbar">
@@ -171,6 +211,13 @@ const MobileLayout = () => {
                             </div>
                         </div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* Global Spotify Device Picker */}
+            <AnimatePresence>
+                {showDevicePicker && (
+                    <SpotifyDevicePicker onClose={() => setShowDevicePicker(false)} />
                 )}
             </AnimatePresence>
         </div>
