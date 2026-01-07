@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, MoreHorizontal, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, ThumbsUp, ThumbsDown, Monitor, Settings } from 'lucide-react';
 import { useMusic } from '@/context/MusicContext';
 import VinylTurntable from '@/components/VinylTurntable';

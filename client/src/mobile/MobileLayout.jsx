@@ -99,7 +99,7 @@ const MobileLayout = () => {
                     <div className="flex flex-col">
                         <h1 className="text-white text-base font-bold leading-tight">RanTunes</h1>
                         <div className="flex items-center gap-1.5">
-                            <span className="text-white/30 text-[8px] uppercase tracking-widest font-black">Mobile v1.4.5</span>
+                            <span className="text-white/30 text-[8px] uppercase tracking-widest font-black">Mobile v1.4.7</span>
                             {isRemoteMode && (
                                 <div className="flex items-center gap-1 bg-green-500/10 px-1.5 py-0.5 rounded-md border border-green-500/20">
                                     <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse"></div>

@@ -103,12 +103,17 @@ export const MusicProvider = ({ children }) => {
 
                     if (state.item) {
                         setDuration((state.item.duration_ms || 0) / 1000);
-                        const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 2000;
-                        if (recentlyManualLoaded) return;
-
                         const spotifyUri = state.item.uri;
+                        const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 1500;
+
+                        // Optimized protection: Only skip if it's the SAME track we just manually loaded
+                        // If it's a DIFFERENT track, it means an external skip happened or the transfer finished
+                        if (recentlyManualLoaded && currentSongRef.current?.file_path === spotifyUri) {
+                            return;
+                        }
+
                         if (spotifyUri && currentSongRef.current?.file_path !== spotifyUri) {
-                            console.log('🎵 [RemoteSync] Track change detected on remote:', state.item.name);
+                            console.log('🎵 [RemoteSync] Transferred/External Track change:', state.item.name);
                             const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
                             if (matchedSong) {
                                 setCurrentSong(matchedSong);
