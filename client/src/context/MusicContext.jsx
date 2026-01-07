@@ -91,41 +91,37 @@ export const MusicProvider = ({ children }) => {
             const state = await SpotifyService.getPlaybackState();
 
             if (state && state.device) {
-                // Semantic Check: RanTunes uses "RanTunes Mobile" or "RanTunes Desktop"
-                const deviceName = state.device.name || '';
-                const isLocalByName = deviceName.includes('RanTunes');
-                const isLocalById = sdk.deviceId && state.device.id === sdk.deviceId;
-                const isLocal = isLocalById || isLocalByName;
-
+                // source of truth: If it's not THIS specific browser device, it's REMOTE
+                const isLocal = sdk.deviceId && state.device.id === sdk.deviceId;
                 setActiveDeviceId(state.device.id);
 
                 if (!isLocal) {
-                    if (!isRemoteMode) console.log('🎵 [RemoteSync] REMOTE Mode:', state.device.name);
                     setIsRemoteMode(true);
                     setRemoteDeviceName(state.device.name);
 
-                    if (isPlaying !== state.is_playing) setIsPlaying(state.is_playing);
+                    // Functional updates to prevent interval reset
+                    setIsPlaying(prev => (prev !== state.is_playing ? state.is_playing : prev));
 
                     const newTime = (state.progress_ms || 0) / 1000;
-                    if (Math.abs(currentTime - newTime) > 2) setCurrentTime(newTime);
+                    setCurrentTime(prev => (Math.abs(prev - newTime) > 3 ? newTime : prev));
 
                     if (state.item) {
-                        setDuration((state.item.duration_ms || 0) / 1000);
+                        setDuration(state.item.duration_ms / 1000);
+
                         const spotifyUri = state.item.uri;
                         const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 1500;
 
-                        // Optimized protection: Only skip if it's the SAME track we just manually loaded
-                        // If it's a DIFFERENT track, it means an external skip happened or the transfer finished
-                        if (recentlyManualLoaded && currentSongRef.current?.file_path === spotifyUri) {
-                            return;
-                        }
-
                         if (spotifyUri && currentSongRef.current?.file_path !== spotifyUri) {
-                            console.log('🎵 [RemoteSync] Transferred/External Track change:', state.item.name);
-                            const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
+                            if (recentlyManualLoaded && (currentSongRef.current?.file_path === spotifyUri || currentSongRef.current?.id === state.item.id)) {
+                                return;
+                            }
+
+                            console.log('🎵 [RemoteSync] Track update:', state.item.name);
+                            const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri || (s.id && spotifyUri.includes(s.id))));
+
                             if (matchedSong) {
                                 setCurrentSong(matchedSong);
-                                const idx = playlistRef.current.findIndex(s => s && (s.id === matchedSong.id || s.file_path === spotifyUri));
+                                const idx = playlistRef.current.findIndex(s => s && (s.id === matchedSong.id || s.file_path === spotifyUri || (s.id && spotifyUri.includes(s.id))));
                                 if (idx >= 0) setPlaylistIndex(idx);
                             } else {
                                 setCurrentSong({
@@ -143,12 +139,10 @@ export const MusicProvider = ({ children }) => {
                         }
                     }
                 } else {
-                    if (isRemoteMode) console.log('🎵 [RemoteSync] Back to LOCAL mode');
                     setIsRemoteMode(false);
                     setRemoteDeviceName(null);
                 }
             } else {
-                if (isRemoteMode) console.log('🎵 [RemoteSync] Session ended');
                 setIsRemoteMode(false);
                 setRemoteDeviceName(null);
                 setActiveDeviceId(null);
@@ -156,7 +150,7 @@ export const MusicProvider = ({ children }) => {
         } catch (err) {
             console.warn('Spotify Remote Sync Error:', err);
         }
-    }, [sdk.deviceId, isRemoteMode, isPlaying, currentTime, duration]);
+    }, [sdk.deviceId]);
 
     useEffect(() => {
         if (!SpotifyService.isSpotifyLoggedIn()) return;
@@ -728,11 +722,8 @@ export const MusicProvider = ({ children }) => {
             // 1. Optimistic Update: Set remote mode immediately to prevent SDK interference
             setIsRemoteMode(true);
             setIsPlaying(true);
-
-            // 2. Wait 1.5s for Spotify backend to settle before polling
-            // This is critical because Spotify API often returns old state for ~1s after transfer
+            await syncSpotifyRemote();
             await new Promise(resolve => setTimeout(resolve, 1500));
-
             await syncSpotifyRemote();
             await fetchSpotifyDevices();
 
