@@ -240,11 +240,34 @@ export const MusicProvider = ({ children }) => {
             if (sdk.currentTrack && !isRemoteMode) {
                 const spotifyUri = `spotify:track:${sdk.currentTrack.id}`;
                 if (currentSongRef.current?.file_path !== spotifyUri) {
+                    const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 2000;
+
+                    // Only block if it's the EXACT song we just manually asked to play
+                    const isManualTrack = currentSongRef.current?.id === sdk.currentTrack.id || currentSongRef.current?.file_path === spotifyUri;
+                    if (recentlyManualLoaded && isManualTrack) {
+                        return;
+                    }
+
+                    console.log('🎵 [LocalSync] Resolving metadata:', sdk.currentTrack.name);
                     const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri || (s.id && spotifyUri.includes(s.id))));
+
                     if (matchedSong) {
                         setCurrentSong(matchedSong);
-                        const idx = playlistRef.current.findIndex(s => s && (s.id === matchedSong.id || s.file_path === spotifyUri));
+                        const idx = playlistRef.current.findIndex(s => s && (s.id === matchedSong.id || s.file_path === spotifyUri || (s.id && spotifyUri.includes(s.id))));
                         if (idx >= 0) setPlaylistIndex(idx);
+                    } else {
+                        // Dynamic metadata for context changes (different album/external app influence)
+                        setCurrentSong({
+                            id: sdk.currentTrack.id,
+                            title: sdk.currentTrack.name,
+                            file_path: spotifyUri,
+                            album: {
+                                name: sdk.currentTrack.album?.name,
+                                cover_url: sdk.currentTrack.album?.images?.[0]?.url
+                            },
+                            artist: { name: sdk.currentTrack.artists?.[0]?.name || 'Unknown Artist' },
+                            duration_seconds: Math.round(sdk.duration / 1000)
+                        });
                     }
                 }
             }
