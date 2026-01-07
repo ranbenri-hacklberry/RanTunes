@@ -157,17 +157,15 @@ const MobileRouterWrapper = () => {
                 return;
             }
 
-            // Only verify if we're supposed to be using Spotify
-            const musicSource = localStorage.getItem('music_source');
-            if (musicSource !== 'spotify' && !SpotifyService.isSpotifyLoggedIn()) {
-                setIsVerifying(false);
-                return;
-            }
-
             try {
                 console.log('🎵 [App] Verifying Spotify session...');
 
-                // Real API check
+                // 1. Initial local check
+                if (!SpotifyService.isSpotifyLoggedIn()) {
+                    throw new Error('No valid session');
+                }
+
+                // 2. Real API check
                 await SpotifyService.getCurrentUser();
 
                 console.log('✅ [App] Spotify session verified');
