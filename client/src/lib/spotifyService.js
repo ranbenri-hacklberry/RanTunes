@@ -207,7 +207,6 @@ export async function getAccessToken() {
 export function isSpotifyLoggedIn() {
     const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     const tokenExpiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
-    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
     // No token at all
     if (!accessToken) {
@@ -215,21 +214,22 @@ export function isSpotifyLoggedIn() {
         return false;
     }
 
-    // Token expired AND no refresh token
-    if (tokenExpiry && Date.now() > Number(tokenExpiry) && !refreshToken) {
-        console.log('🔑 [SpotifyService] isSpotifyLoggedIn: false (expired, no refresh)');
-        // Clear expired tokens
+    // No expiry info - can't verify, be safe and say not logged in
+    if (!tokenExpiry) {
+        console.log('🔑 [SpotifyService] isSpotifyLoggedIn: false (no expiry info)');
         logout();
         return false;
     }
 
-    // If token expired but we have refresh token, consider logged in (will refresh on use)
-    if (tokenExpiry && Date.now() > Number(tokenExpiry) && refreshToken) {
-        console.log('🔑 [SpotifyService] isSpotifyLoggedIn: true (expired but can refresh)');
-        return true;
+    // Token expired - clear everything and require re-login
+    // (refresh will happen automatically when needed, but for UI display purposes show as disconnected)
+    if (Date.now() > Number(tokenExpiry)) {
+        console.log('🔑 [SpotifyService] isSpotifyLoggedIn: false (token expired)');
+        // Don't logout here - let refresh happen naturally when actually trying to use
+        return false;
     }
 
-    console.log('🔑 [SpotifyService] isSpotifyLoggedIn: true');
+    console.log('🔑 [SpotifyService] isSpotifyLoggedIn: true (valid token)');
     return true;
 }
 
