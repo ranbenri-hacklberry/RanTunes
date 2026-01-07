@@ -564,6 +564,33 @@ export const MusicProvider = ({ children }) => {
         setTransitionPhase('stopped');
     }, [pauseLocal, seekLocal]);
 
+    // 5.8 Spotify Connect (Devices)
+    const [spotifyDevices, setSpotifyDevices] = useState([]);
+
+    const fetchSpotifyDevices = useCallback(async () => {
+        if (!SpotifyService.isSpotifyLoggedIn()) return [];
+        try {
+            const data = await SpotifyService.getDevices();
+            setSpotifyDevices(data.devices || []);
+            return data.devices || [];
+        } catch (error) {
+            console.error('Error fetching Spotify devices:', error);
+            return [];
+        }
+    }, []);
+
+    const transferPlayback = useCallback(async (deviceId) => {
+        try {
+            await SpotifyService.transferPlayback(deviceId, true);
+            // After transfer, sync state might take a second
+            setTimeout(fetchSpotifyDevices, 1000);
+            return true;
+        } catch (error) {
+            console.error('Error transferring playback:', error);
+            return false;
+        }
+    }, [fetchSpotifyDevices]);
+
     // 6. Audio Analysis
     const realAmplitude = useAudioAnalyzer(audioRef, isLocalPlaying || (isPlaying && currentSong?.preview_url && !sdk.isPlaying));
 
@@ -595,7 +622,10 @@ export const MusicProvider = ({ children }) => {
         clearError: () => setPlaybackError(null),
         audioRef,
         currentAmplitude: realAmplitude,
-        trackFeatures
+        trackFeatures,
+        spotifyDevices,
+        fetchSpotifyDevices,
+        transferPlayback
     };
 
     return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;

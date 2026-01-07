@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronDown, MoreHorizontal, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, ThumbsUp, ThumbsDown, Monitor } from 'lucide-react';
 import { useMusic } from '@/context/MusicContext';
 import VinylTurntable from '@/components/VinylTurntable';
+import SpotifyDevicePicker from '@/components/SpotifyDevicePicker';
 import { getSystemDirection, isSystemRTL } from '@/lib/localeUtils';
 
 import AnalogAmplifier from './AnalogAmplifier';
@@ -32,6 +33,7 @@ const MobileFullPlayer = ({ onClose }) => {
 
     const [isScrubbing, setIsScrubbing] = useState(false);
     const [scrubValue, setScrubValue] = useState(0);
+    const [showDevicePicker, setShowDevicePicker] = useState(false);
 
     // Carousel State
     const [viewIndex, setViewIndex] = useState(playlistIndex);
@@ -227,9 +229,26 @@ const MobileFullPlayer = ({ onClose }) => {
                     />
                     <div className="flex justify-between text-[10px] text-white/40 mt-1 font-mono" dir="ltr">
                         <span>{formatTime(isScrubbing ? scrubValue : currentTime)}</span>
+                        <div className="flex items-center gap-1 text-green-400 font-bold">
+                            {currentSong?.file_path?.startsWith('spotify:') && (
+                                <button
+                                    onClick={() => setShowDevicePicker(true)}
+                                    className="flex items-center gap-1 active:scale-95 transition-transform"
+                                >
+                                    <Monitor size={12} />
+                                    <span>Connect</span>
+                                </button>
+                            )}
+                        </div>
                         <span>{formatTime(duration)}</span>
                     </div>
                 </div>
+
+                <AnimatePresence>
+                    {showDevicePicker && (
+                        <SpotifyDevicePicker onClose={() => setShowDevicePicker(false)} />
+                    )}
+                </AnimatePresence>
             </div>
         </motion.div>
     );

@@ -23,15 +23,51 @@ const getCoverUrl = (localPath) => {
 const VinylTurntable = ({ song, isPlaying, albumArt, transitionPhase = 'playing', hideInfo = false }) => {
     const coverUrl = useMemo(() => getCoverUrl(albumArt), [albumArt]);
 
-    // Determine rotation speed and arm position based on phase
-    const isRotating = useMemo(() => {
-        if (transitionPhase === 'stopped') return false;
-        if (transitionPhase === 'buffering') return false;
-        // Keep rotating during fading_out but stop if explicitly stopped or buffering
-        return isPlaying || transitionPhase === 'fading_out' || transitionPhase === 'starting';
+    // Physics-based rotation state for high realism
+    const [rotation, setRotation] = useState(0);
+    const rotationRef = useRef(0);
+    const lastTimeRef = useRef(0);
+    const currentRpmRef = useRef(0);
+    const targetRpmRef = useRef(0);
+
+    // Sync target RPM with playback phase
+    useEffect(() => {
+        if (transitionPhase === 'stopped' || transitionPhase === 'buffering') {
+            targetRpmRef.current = 0;
+        } else if (transitionPhase === 'fading_out') {
+            targetRpmRef.current = 10; // Slowing down to 'manual' speed
+        } else if (isPlaying || transitionPhase === 'playing' || transitionPhase === 'starting') {
+            targetRpmRef.current = 34; // Authentic 34 RPM as requested
+        } else {
+            targetRpmRef.current = 0;
+        }
     }, [isPlaying, transitionPhase]);
 
-    const rotationSpeed = 1.7647; // Precisely 34 RPM (60 / 34)
+    // Animation frame loop for smooth speed transitions (Torque Simulation)
+    useEffect(() => {
+        let frameId;
+        const animate = (time) => {
+            if (!lastTimeRef.current) lastTimeRef.current = time;
+            const delta = (time - lastTimeRef.current) / 1000;
+            lastTimeRef.current = time;
+
+            // Apply 'torque' (lerp speed)
+            const acceleration = targetRpmRef.current > currentRpmRef.current ? 0.04 : 0.02;
+            currentRpmRef.current += (targetRpmRef.current - currentRpmRef.current) * acceleration;
+
+            // Update cumulative rotation
+            if (currentRpmRef.current > 0.1) {
+                rotationRef.current += (currentRpmRef.current * 6) * delta; // 360deg / 60sec = 6deg/sec per RPM
+                setRotation(rotationRef.current % 360);
+            }
+
+            frameId = requestAnimationFrame(animate);
+        };
+        frameId = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(frameId);
+    }, []);
+
+    const isEffectivelyRotating = currentRpmRef.current > 0.5;
 
     const armPosition = useMemo(() => {
         if (transitionPhase === 'buffering' || transitionPhase === 'stopped') return 0; // At rest
@@ -46,11 +82,11 @@ const VinylTurntable = ({ song, isPlaying, albumArt, transitionPhase = 'playing'
             <div className="vinyl-base">
                 {/* Platter */}
                 <div className="vinyl-platter-ring">
-                    {/* Vinyl disc - Using CSS for infinite rotation to avoid Framer Motion reset jumps */}
+                    {/* Vinyl disc - Using manual rotation for physics smoothing */}
                     <div
-                        className={`vinyl-disc music-vinyl-spin ${!isRotating ? 'paused' : ''}`}
+                        className="vinyl-disc"
                         style={{
-                            '--rotation-speed': `${rotationSpeed}s`
+                            transform: `rotate(${rotation}deg)`
                         }}
                     >
                         {/* Grooves */}
@@ -104,7 +140,7 @@ const VinylTurntable = ({ song, isPlaying, albumArt, transitionPhase = 'playing'
                 </motion.div>
 
                 <div className="vinyl-armrest"></div>
-                <div className={`vinyl-led ${isRotating ? 'vinyl-led-on' : ''}`}></div>
+                <div className={`vinyl-led ${isEffectivelyRotating ? 'vinyl-led-on' : ''}`}></div>
             </div>
 
             {song && !hideInfo && (
