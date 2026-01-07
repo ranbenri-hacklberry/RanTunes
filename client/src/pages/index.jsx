@@ -112,8 +112,15 @@ const MusicPageContent = () => {
     };
 
     useEffect(() => {
-        setIsSpotifyConnected(SpotifyService.isSpotifyLoggedIn());
-    }, []);
+        const loggedIn = SpotifyService.isSpotifyLoggedIn();
+        setIsSpotifyConnected(loggedIn);
+
+        // Auto-select spotify if logged in and no source selected
+        if (loggedIn && !musicSource) {
+            setMusicSource('spotify');
+            localStorage.setItem('music_source', 'spotify');
+        }
+    }, [musicSource]);
 
     const handleSpotifyLogin = () => {
         SpotifyService.loginWithSpotify();
@@ -573,7 +580,7 @@ const MusicPageContent = () => {
                                 {activeTab === 'albums' && (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                                         <div
-                                            onClick={() => musicSource === 'spotify' ? setShowSpotifySearch(true) : setShowScanner(true)}
+                                            onClick={() => (musicSource === 'spotify' || isSpotifyConnected) ? setShowSpotifySearch(true) : setShowScanner(true)}
                                             className="group bg-white/5 border-2 border-dashed border-white/20 flex flex-col items-center justify-center text-center p-6 hover:border-purple-500/50 hover:bg-white/10 transition-all cursor-pointer aspect-square rounded-2xl relative"
                                         >
                                             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
