@@ -202,12 +202,35 @@ export async function getAccessToken() {
 }
 
 /**
- * Check if user is logged in to Spotify
+ * Check if user is logged in to Spotify (has valid, non-expired token)
  */
 export function isSpotifyLoggedIn() {
-    const hasToken = !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    console.log('🔑 [SpotifyService] isSpotifyLoggedIn:', hasToken);
-    return hasToken;
+    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const tokenExpiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
+    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+
+    // No token at all
+    if (!accessToken) {
+        console.log('🔑 [SpotifyService] isSpotifyLoggedIn: false (no token)');
+        return false;
+    }
+
+    // Token expired AND no refresh token
+    if (tokenExpiry && Date.now() > Number(tokenExpiry) && !refreshToken) {
+        console.log('🔑 [SpotifyService] isSpotifyLoggedIn: false (expired, no refresh)');
+        // Clear expired tokens
+        logout();
+        return false;
+    }
+
+    // If token expired but we have refresh token, consider logged in (will refresh on use)
+    if (tokenExpiry && Date.now() > Number(tokenExpiry) && refreshToken) {
+        console.log('🔑 [SpotifyService] isSpotifyLoggedIn: true (expired but can refresh)');
+        return true;
+    }
+
+    console.log('🔑 [SpotifyService] isSpotifyLoggedIn: true');
+    return true;
 }
 
 /**
