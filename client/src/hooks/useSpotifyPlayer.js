@@ -173,51 +173,48 @@ export function useSpotifyPlayer() {
     };
 
     // Play a specific track (optionally with a queue of tracks for continuous playback)
-    const play = useCallback(async (spotifyUri, positionMs = 0, allUris = null) => {
+    const play = useCallback(async (spotifyUri, positionMs = 0, allUris = null, targetId = null) => {
+        const finalDeviceId = targetId || deviceId;
+
         console.log('🎵 [SpotifyPlayer] play() called with URI:', spotifyUri);
         console.log('🎵 [SpotifyPlayer] Queue size:', allUris?.length || 1);
-        console.log('🎵 [SpotifyPlayer] Current deviceId:', deviceId);
-        console.log('🎵 [SpotifyPlayer] isReady:', isReady);
+        console.log('🎵 [SpotifyPlayer] Target deviceId:', finalDeviceId);
 
-        if (!deviceId) {
+        if (!finalDeviceId) {
             console.error('🎵 [SpotifyPlayer] ERROR: No device ID available!');
             setError('No device available');
             return;
         }
 
         const token = await getAccessToken();
-        console.log('🎵 [SpotifyPlayer] Token for play:', token ? 'exists' : 'NULL');
         if (!token) {
             console.error('🎵 [SpotifyPlayer] ERROR: No token for playback!');
             return;
         }
 
         try {
-            const isActive = await checkIsActive();
-            console.log('🎵 [SpotifyPlayer] Is device active?', isActive);
-
-            if (!isActive) {
-                console.log('🎵 [SpotifyPlayer] Device not active, transferring playback to:', deviceId);
-                const transferResponse = await fetch('https://api.spotify.com/v1/me/player', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        device_ids: [deviceId],
-                        play: false,
-                    }),
-                });
-                console.log('🎵 [SpotifyPlayer] Transfer response status:', transferResponse.status);
-                if (!transferResponse.ok) {
-                    const errorText = await transferResponse.text();
-                    console.error('🎵 [SpotifyPlayer] Transfer failed:', errorText);
+            // Transfer logic ONLY if we are playing on the local player and it's not active
+            if (finalDeviceId === deviceId) {
+                const isActive = await checkIsActive();
+                if (!isActive) {
+                    console.log('🎵 [SpotifyPlayer] Local device not active, transferring playback...');
+                    const transferResponse = await fetch('https://api.spotify.com/v1/me/player', {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            device_ids: [deviceId],
+                            play: false,
+                        }),
+                    });
+                    if (!transferResponse.ok) console.warn('Transfer failed');
+                    await new Promise(resolve => setTimeout(resolve, 1500));
                 }
-                await new Promise(resolve => setTimeout(resolve, 1500));
             }
 
-            // If we have a full playlist, send all URIs so Spotify will auto-play next
+            // ... Prepare body ...
             let body;
             if (allUris && allUris.length > 1) {
                 const offset = allUris.indexOf(spotifyUri);
@@ -226,13 +223,11 @@ export function useSpotifyPlayer() {
                     offset: { position: offset >= 0 ? offset : 0 },
                     position_ms: positionMs
                 };
-                console.log('🎵 [SpotifyPlayer] Playing with queue, starting at position:', offset);
             } else {
                 body = { uris: [spotifyUri], position_ms: positionMs };
             }
-            console.log('🎵 [SpotifyPlayer] Sending play request with body:', JSON.stringify(body));
 
-            const playResponse = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+            const playResponse = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${finalDeviceId}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,

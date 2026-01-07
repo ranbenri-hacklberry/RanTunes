@@ -50,6 +50,18 @@ export const MusicProvider = ({ children }) => {
     // 5.6 Remote Control State (External Devices)
     const [isRemoteMode, setIsRemoteMode] = useState(false);
     const [remoteDeviceName, setRemoteDeviceName] = useState(null);
+    const [activeDeviceId, setActiveDeviceId] = useState(null);
+
+    const currentSongRef = useRef(currentSong);
+    const playlistRef = useRef(playlist);
+
+    useEffect(() => {
+        currentSongRef.current = currentSong;
+    }, [currentSong]);
+
+    useEffect(() => {
+        playlistRef.current = playlist;
+    }, [playlist]);
 
     // Dynamic volume control - sync with targetVolumeRef
     const updateVolume = useCallback((v) => {
@@ -82,39 +94,53 @@ export const MusicProvider = ({ children }) => {
                 const state = await SpotifyService.getPlaybackState();
 
                 // If there's an active device and it's NOT our local SDK
-                if (state && state.device && state.device.id !== sdk.deviceId) {
-                    setIsRemoteMode(true);
-                    setRemoteDeviceName(state.device.name);
+                if (state && state.device) {
+                    const isLocal = state.device.id === sdk.deviceId;
+                    setActiveDeviceId(state.device.id);
 
-                    // Sync playback state
-                    setIsPlaying(state.is_playing);
-                    setCurrentTime((state.progress_ms || 0) / 1000);
-                    setDuration((state.item?.duration_ms || 0) / 1000);
+                    if (!isLocal) {
+                        setIsRemoteMode(true);
+                        setRemoteDeviceName(state.device.name);
 
-                    // Sync metadata if different
-                    const spotifyUri = state.item?.uri;
-                    if (spotifyUri && currentSong?.file_path !== spotifyUri) {
-                        // Try to find in playlist or create a dummy song object
-                        const matchedSong = playlist.find(s => s.file_path === spotifyUri);
-                        if (matchedSong) {
-                            setCurrentSong(matchedSong);
-                        } else if (state.item) {
-                            setCurrentSong({
-                                id: state.item.id,
-                                title: state.item.name,
-                                file_path: state.item.uri,
-                                album: {
-                                    name: state.item.album?.name,
-                                    cover_url: state.item.album?.images?.[0]?.url
-                                },
-                                artist: { name: state.item.artists?.[0]?.name },
-                                duration_seconds: Math.round(state.item.duration_ms / 1000)
-                            });
+                        // Sync playback state
+                        setIsPlaying(state.is_playing);
+                        setCurrentTime((state.progress_ms || 0) / 1000);
+
+                        if (state.item) {
+                            setDuration((state.item.duration_ms || 0) / 1000);
+
+                            // Sync metadata if different
+                            const spotifyUri = state.item.uri;
+                            if (spotifyUri && currentSongRef.current?.file_path !== spotifyUri) {
+                                // Try to find in playlist or create a dummy song object
+                                const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
+                                if (matchedSong) {
+                                    setCurrentSong(matchedSong);
+                                } else {
+                                    setCurrentSong({
+                                        id: state.item.id || spotifyUri,
+                                        title: state.item.name || 'Spotify Track',
+                                        file_path: state.item.uri,
+                                        album: {
+                                            name: state.item.album?.name,
+                                            cover_url: state.item.album?.images?.[0]?.url
+                                        },
+                                        artist: { name: state.item.artists?.[0]?.name || 'Unknown Artist' },
+                                        duration_seconds: Math.round((state.item.duration_ms || 0) / 1000)
+                                    });
+                                }
+                            }
                         }
+                    } else {
+                        // It's local, let the useSpotifyPlayer hook handle it mostly, 
+                        // but we can set isRemoteMode to false
+                        setIsRemoteMode(false);
+                        setRemoteDeviceName(null);
                     }
                 } else {
                     setIsRemoteMode(false);
                     setRemoteDeviceName(null);
+                    setActiveDeviceId(null);
                 }
             } catch (err) {
                 console.warn('Spotify Polling Error:', err);
@@ -125,7 +151,7 @@ export const MusicProvider = ({ children }) => {
         pollSpotifyState(); // Initial check
 
         return () => clearInterval(interval);
-    }, [sdk.deviceId, currentSong?.file_path, playlist]);
+    }, [sdk.deviceId]); // Stable dependency
 
     // Perform smooth fade transition
     const performTransition = useCallback(async (action) => {
@@ -369,6 +395,18 @@ export const MusicProvider = ({ children }) => {
     // CONTROLS
     const togglePlay = useCallback(async () => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
+
+        if (isRemoteMode) {
+            try {
+                if (isPlaying) await SpotifyService.pause();
+                else await SpotifyService.play();
+                setIsPlaying(!isPlaying);
+            } catch (err) {
+                console.error('Remote toggle failed:', err);
+            }
+            return;
+        }
+
         if (isSpotify && sdk.isReady) {
             // Optimistic update to UI
             setIsPlaying(prev => !prev);
@@ -377,7 +415,7 @@ export const MusicProvider = ({ children }) => {
             if (isLocalPlaying) pauseLocal();
             else resumeLocal();
         }
-    }, [currentSong, sdk, isLocalPlaying, pauseLocal, resumeLocal]);
+    }, [currentSong, sdk, isLocalPlaying, pauseLocal, resumeLocal, isRemoteMode, isPlaying]);
 
     // PLAY ACTION
     const playSong = useCallback(async (song, playlistSongs = null, forcePlay = false) => {
@@ -412,13 +450,16 @@ export const MusicProvider = ({ children }) => {
 
                 if (isSpotifyTrack) {
                     const allSpotifyUris = currentPlaylist
-                        .filter(s => s.file_path?.startsWith('spotify:track:') && (s.myRating || 0) !== 1)
+                        .filter(s => s && s.file_path?.startsWith('spotify:track:') && (s.myRating || 0) !== 1)
                         .map(s => s.file_path);
 
                     pauseLocal();
-                    if (sdk.isReady && sdk.deviceId) {
+
+                    // If we have an active device (local or remote), play on it
+                    const targetId = activeDeviceId || sdk.deviceId;
+                    if (targetId) {
                         setIsPlaying(true);
-                        await sdk.play(song.file_path, 0, allSpotifyUris);
+                        await sdk.play(song.file_path, 0, allSpotifyUris, targetId);
                     } else if (song.preview_url) {
                         setIsPlaying(true);
                         await playLocalPath(song.preview_url, true);
@@ -536,18 +577,22 @@ export const MusicProvider = ({ children }) => {
                 setPlaylistIndex(nextIndex);
 
                 const isSpotify = nextSong.file_path?.startsWith('spotify:');
-                if (isSpotify && sdk.isReady) {
+                if (isSpotify) {
                     const allUris = playlist
-                        .filter(s => s.file_path?.startsWith('spotify:track:') && !isDisliked(s))
+                        .filter(s => s && s.file_path?.startsWith('spotify:track:') && !isDisliked(s))
                         .map(s => s.file_path);
-                    await sdk.play(nextSong.file_path, 0, allUris);
-                } else if (!isSpotify) {
+
+                    const targetId = activeDeviceId || sdk.deviceId;
+                    if (targetId) {
+                        await sdk.play(nextSong.file_path, 0, allUris, targetId);
+                    }
+                } else {
                     await playLocalPath(nextSong.file_path);
                 }
                 setIsPlaying(true);
             }
         });
-    }, [playlist, playlistIndex, shuffle, repeat, currentSong, currentTime, duration, sdk, playLocalPath, performTransition]);
+    }, [playlist, playlistIndex, shuffle, repeat, currentSong, currentTime, duration, sdk, playLocalPath, performTransition, isRemoteMode, activeDeviceId]);
     const handlePrevious = useCallback(() => {
         performTransition(async () => {
             if (!playlist.length) return;
@@ -572,18 +617,22 @@ export const MusicProvider = ({ children }) => {
                 setPlaylistIndex(prevIndex);
 
                 const isSpotify = prevSong.file_path?.startsWith('spotify:');
-                if (isSpotify && sdk.isReady) {
+                if (isSpotify) {
                     const allUris = playlist
-                        .filter(s => s.file_path?.startsWith('spotify:track:') && !isDisliked(s))
+                        .filter(s => s && s.file_path?.startsWith('spotify:track:') && !isDisliked(s))
                         .map(s => s.file_path);
-                    await sdk.play(prevSong.file_path, 0, allUris);
-                } else if (!isSpotify) {
+
+                    const targetId = activeDeviceId || sdk.deviceId;
+                    if (targetId) {
+                        await sdk.play(prevSong.file_path, 0, allUris, targetId);
+                    }
+                } else {
                     await playLocalPath(prevSong.file_path);
                 }
                 setIsPlaying(true);
             }
         });
-    }, [playlist, playlistIndex, currentTime, sdk, playLocalPath, performTransition, seek]);
+    }, [playlist, playlistIndex, currentTime, sdk, playLocalPath, performTransition, seek, isRemoteMode, activeDeviceId]);
 
     // Lifecycle
     useEffect(() => { handleNextRef.current = handleNext; }, [handleNext]);
@@ -686,7 +735,8 @@ export const MusicProvider = ({ children }) => {
         fetchSpotifyDevices,
         transferPlayback,
         isRemoteMode,
-        remoteDeviceName
+        remoteDeviceName,
+        activeDeviceId
     };
 
     return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;

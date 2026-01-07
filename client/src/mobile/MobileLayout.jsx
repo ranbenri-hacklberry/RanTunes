@@ -4,6 +4,7 @@ import { Settings, LogOut, X, Music, Monitor, Smartphone } from 'lucide-react';
 import MobileNavbar from './components/MobileNavbar';
 import MobileMiniPlayer from './components/MobileMiniPlayer';
 import MobileFullPlayer from './components/MobileFullPlayer';
+import SpotifyDevicePicker from '@/components/SpotifyDevicePicker';
 import MobileAlbums from './pages/MobileAlbums';
 import MobilePlaylists from './pages/MobilePlaylists';
 import MobileArtists from './pages/MobileArtists';
