@@ -149,7 +149,8 @@ export const MusicProvider = ({ children }) => {
     }, [currentUser, currentSong?.id, isPlaying]);
 
     // 🎮 LISTEN FOR REMOTE COMMANDS FROM iCaffe MiniMusicPlayer
-    // Use refs to avoid reconnecting on every state change
+    // TEMPORARILY DISABLED FOR DEBUGGING
+    /*
     const isPlayingRef = useRef(isPlaying);
     const currentSongRef = useRef(currentSong);
     const sdkRef = useRef(sdk);
@@ -231,6 +232,7 @@ export const MusicProvider = ({ children }) => {
             supabase.removeChannel(channel);
         };
     }, [currentUser?.email]); // Only depends on email - stable connection
+    */
 
     const playableSongs = useMemo(() =>
         playlist.filter(s => (s?.myRating || 0) !== 1),
