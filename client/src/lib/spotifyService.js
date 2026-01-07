@@ -514,9 +514,20 @@ export default {
     getAlbumTracks,
     search,
     getAudioFeatures: async (trackId) => {
-        const response = await spotifyFetch(`/audio-features/${trackId}`);
-        if (!response.ok) throw new Error('Failed to get audio features');
-        return response.json();
+        try {
+            const response = await spotifyFetch(`/audio-features/${trackId}`);
+            if (!response.ok) {
+                if (response.status === 403) {
+                    console.warn('⚠️ [SpotifyService] audio-features access restricted (403). Using fallback defaults.');
+                    return { tempo: 120, energy: 0.5, danceability: 0.5, status: 'fallback' };
+                }
+                throw new Error('Failed to get audio features');
+            }
+            return response.json();
+        } catch (err) {
+            console.warn('⚠️ [SpotifyService] Error fetching audio features, using fallback:', err.message);
+            return { tempo: 120, energy: 0.5, danceability: 0.5, status: 'fallback' };
+        }
     },
     getPlaybackState,
     play,
