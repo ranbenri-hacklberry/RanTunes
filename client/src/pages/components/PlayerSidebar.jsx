@@ -11,7 +11,8 @@ const PlayerSidebar = ({
     rateSong,
     currentTime = 0,
     duration = 0,
-    seek = () => { }
+    seek = () => { },
+    transitionPhase = 'playing'
 }) => {
     // Format time (seconds to MM:SS)
     const formatTime = (seconds) => {
@@ -36,8 +37,9 @@ const PlayerSidebar = ({
             {currentSong ? (
                 <>
                     <VinylTurntable
-                        currentSong={currentSong}
+                        song={currentSong}
                         isPlaying={isPlaying}
+                        transitionPhase={transitionPhase}
                     />
 
                     {/* Progress Bar (RTL) */}

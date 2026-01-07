@@ -26,7 +26,8 @@ const MobileFullPlayer = ({ onClose }) => {
         playlistIndex,
         playSong,
         currentAmplitude, // Get real audio data
-        trackFeatures
+        trackFeatures,
+        transitionPhase
     } = useMusic();
 
     const [isScrubbing, setIsScrubbing] = useState(false);
@@ -139,6 +140,7 @@ const MobileFullPlayer = ({ onClose }) => {
                             isPlaying={isPlaying}
                             albumArt={currentSong?.album?.cover_url}
                             hideInfo={true}
+                            transitionPhase={transitionPhase}
                         />
                     </div>
                 </div>

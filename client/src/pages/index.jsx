@@ -68,7 +68,8 @@ const MusicPageContent = () => {
         duration,
         seek,
         toast,
-        clearError
+        clearError,
+        transitionPhase
     } = useMusic();
 
     const [activeTab, setActiveTab] = useState('albums');
@@ -434,6 +435,7 @@ const MusicPageContent = () => {
                         isPlaying={isPlaying}
                         albumArt={currentSong?.album?.cover_url}
                         hideInfo={true}
+                        transitionPhase={transitionPhase}
                     />
 
                     {currentSong && (

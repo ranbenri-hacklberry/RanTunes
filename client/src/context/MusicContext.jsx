@@ -42,6 +42,80 @@ export const MusicProvider = ({ children }) => {
     const [playbackError, setPlaybackError] = useState(null);
     const [toast, setToast] = useState(null);
 
+    // 5.5 Transition Phase for Vinyl animations (Killer Feature)
+    const [transitionPhase, setTransitionPhase] = useState('stopped');
+    const targetVolumeRef = useRef(0.8);
+    const isManuallyTransitioningRef = useRef(false);
+
+    // Dynamic volume control - sync with targetVolumeRef
+    const updateVolume = useCallback((v) => {
+        targetVolumeRef.current = v;
+        if (currentSong?.file_path?.startsWith('spotify:')) {
+            if (sdk.isReady) sdk.setVolume(v);
+        } else {
+            setVolume(v);
+        }
+    }, [currentSong, sdk, setVolume]);
+
+    // Keep transitionPhase in sync with playing state when not manually transitioning
+    useEffect(() => {
+        if (isManuallyTransitioningRef.current) return;
+        setTransitionPhase(isPlaying ? 'playing' : 'stopped');
+    }, [isPlaying]);
+
+    // Perform smooth fade transition
+    const performTransition = useCallback(async (action) => {
+        if (!currentSong || !isPlaying) {
+            await action();
+            return;
+        }
+
+        isManuallyTransitioningRef.current = true;
+
+        try {
+            // 1. Fade Out & Slow Vinyl
+            setTransitionPhase('fading_out');
+            const originalVolume = targetVolumeRef.current;
+            const fadeDuration = 1000;
+            const steps = 10;
+
+            for (let i = steps; i >= 0; i--) {
+                const v = (i / steps) * originalVolume;
+                if (currentSong?.file_path?.startsWith('spotify:')) {
+                    if (sdk.isReady) await sdk.setVolume(v);
+                } else {
+                    setVolume(v);
+                }
+                await new Promise(r => setTimeout(r, fadeDuration / steps));
+            }
+
+            // 2. Buffer / Switch Song / Change Label
+            setTransitionPhase('buffering');
+            await action();
+
+            // Allow some time for metadata to update and audio to buffer
+            // This masks the "blank" gap between tracks
+            await new Promise(r => setTimeout(r, 1200));
+
+            // 3. Accelerate Vinyl & Fade In
+            setTransitionPhase('starting');
+            for (let i = 0; i <= steps; i++) {
+                const v = (i / steps) * originalVolume;
+                // Note: use immediate currentSong context if possible, 
+                // but usually the players are triggered by play() calls inside action()
+                if (currentSong?.file_path || true) { // Always try to set volume on active player
+                    if (sdk.isReady) sdk.setVolume(v);
+                    setVolume(v);
+                }
+                await new Promise(r => setTimeout(r, fadeDuration / steps));
+            }
+
+            setTransitionPhase('playing');
+        } finally {
+            isManuallyTransitioningRef.current = false;
+        }
+    }, [currentSong, isPlaying, sdk, setVolume, updateVolume]);
+
     // 4. Shared Display State (Synchronized from either Source)
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -258,121 +332,75 @@ export const MusicProvider = ({ children }) => {
 
     // PLAY ACTION
     const playSong = useCallback(async (song, playlistSongs = null, forcePlay = false) => {
-        if (!song) return;
+        // Use transition for song changes, but not for initial play from stop
+        const action = async () => {
+            if (!song) return;
 
-        console.log('🎵 [MusicContext] playSong called:', {
-            title: song.title,
-            id: song.id,
-            isCurrent: currentSong?.id === song.id,
-            forcePlay
-        });
+            console.log('🎵 [MusicContext] playSong Execution:', {
+                title: song.title,
+                id: song.id
+            });
 
-        // If same song is already playing/current, toggle instead of restart
-        // Unless forcePlay is true (useful for "Play Album" buttons)
-        if (currentSong?.id === song.id && !forcePlay) {
-            console.log('🎵 [MusicContext] same song, toggling...');
-            togglePlay();
-            return;
-        }
-
-        // Never play disliked songs
-        if ((song.myRating || 0) === 1) {
-            console.log('🎵 [MusicContext] Song is disliked, skipping...');
-            if (Array.isArray(playlistSongs) || playlist.length > 0) {
-                if (Array.isArray(playlistSongs)) setPlaylist(playlistSongs);
-                setTimeout(() => handleNextRef.current(), 100);
+            // If same song is already playing/current, toggle instead of restart
+            if (currentSong?.id === song.id && !forcePlay) {
+                togglePlay();
+                return;
             }
-            return;
-        }
 
-        setIsLoading(true);
-        setPlaybackError(null);
+            // Disliked protection
+            if ((song.myRating || 0) === 1) {
+                handleNext();
+                return;
+            }
 
-        // Optimistically update current song immediately to catch rapid clicks
-        setCurrentSong(song);
+            setIsLoading(true);
+            setPlaybackError(null);
+            setCurrentSong(song);
 
-        try {
-            const isSpotifyTrack = song.file_path?.startsWith('spotify:');
-            const currentPlaylist = Array.isArray(playlistSongs) ? playlistSongs : (Array.isArray(playlist) ? playlist : []);
+            try {
+                const isSpotifyTrack = song.file_path?.startsWith('spotify:');
+                const currentPlaylist = Array.isArray(playlistSongs) ? playlistSongs : (Array.isArray(playlist) ? playlist : []);
 
-            if (isSpotifyTrack) {
-                console.log('🎵 [MusicContext] playing Spotify track:', song.file_path);
-                const allSpotifyUris = currentPlaylist
-                    .filter(s => s.file_path?.startsWith('spotify:track:') && (s.myRating || 0) !== 1)
-                    .map(s => s.file_path);
+                if (isSpotifyTrack) {
+                    const allSpotifyUris = currentPlaylist
+                        .filter(s => s.file_path?.startsWith('spotify:track:') && (s.myRating || 0) !== 1)
+                        .map(s => s.file_path);
 
-                try {
-                    // Stop any local playback first
                     pauseLocal();
-
                     if (sdk.isReady && sdk.deviceId) {
-                        // Best case: Use Web Playback SDK
                         setIsPlaying(true);
                         await sdk.play(song.file_path, 0, allSpotifyUris);
-                        console.log('🎵 [MusicContext] sdk.play called successfully');
                     } else if (song.preview_url) {
-                        // Fallback: Play 30-second preview
                         setIsPlaying(true);
                         await playLocalPath(song.preview_url, true);
-                        showToast('מנגן תצוגה מקדימה (Spotify SDK עדיין נטען)', 'info');
-                    } else {
-                        // Try to play on any active Spotify device (phone, desktop app, etc.)
-                        try {
-                            const service = await import('@/lib/spotifyService');
-                            const SpotifyService = service.default || service;
-
-                            // First check if there are any active devices
-                            const devices = await SpotifyService.getDevices?.();
-                            if (devices && devices.length > 0) {
-                                const activeDevice = devices.find(d => d.is_active) || devices[0];
-                                await SpotifyService.play({ uris: [song.file_path], device_id: activeDevice.id });
-                                setIsPlaying(true);
-                                showToast(`מנגן על: ${activeDevice.name}`, 'info');
-                            } else {
-                                // No devices at all - inform user
-                                showToast('נא לפתוח את Spotify באפליקציה אחרת או לחכות לטעינת הנגן', 'error');
-                                setPlaybackError('לא נמצא מכשיר Spotify פעיל');
-                            }
-                        } catch (deviceErr) {
-                            console.warn('🎵 [MusicContext] Device fallback failed:', deviceErr);
-                            showToast('הנגן עדיין נטען, נסה שוב בכמה שניות', 'info');
-                        }
                     }
-                } catch (err) {
-                    console.error('🎵 [MusicContext] Spotify play operation failed:', err);
-                    const errorMsg = err.message || 'לא ניתן לנגן את הרצועה';
-                    setPlaybackError(`שגיאת Spotify: ${errorMsg}`);
-                    showToast(errorMsg, 'error');
-                    setIsPlaying(false);
-                }
-            } else {
-                try {
+                } else {
                     setIsPlaying(true);
                     const isBlob = !!(song.isLocalDeviceFile && song.file_blob_url);
                     const path = isBlob ? song.file_blob_url : song.file_path;
                     await playLocalPath(path, isBlob);
-                } catch (playError) {
-                    console.error('Audio play failed:', playError);
-                    setPlaybackError('שגיאה בנגינת הקובץ.');
-                    showToast('שגיאה בנגינת הקובץ', 'error');
-                    setIsPlaying(false);
                 }
-            }
 
-            // Playlist update
-            if (Array.isArray(playlistSongs)) {
-                setPlaylist(playlistSongs);
-                const idx = playlistSongs.findIndex(s => s.id === song.id);
-                setPlaylistIndex(idx >= 0 ? idx : 0);
+                if (Array.isArray(playlistSongs)) {
+                    setPlaylist(playlistSongs);
+                    const idx = playlistSongs.findIndex(s => s.id === song.id);
+                    setPlaylistIndex(idx >= 0 ? idx : 0);
+                }
+            } catch (error) {
+                console.error('Error playing song:', error);
+                setPlaybackError(`שגיאה: ${error.message}`);
+            } finally {
+                setIsLoading(false);
+                lastLoadTimeRef.current = Date.now();
             }
-        } catch (error) {
-            console.error('Error playing song:', error);
-            setPlaybackError(`שגיאה לא צפויה: ${error.message}`);
-        } finally {
-            setIsLoading(false);
-            lastLoadTimeRef.current = Date.now();
+        };
+
+        if (isPlaying && currentSong && currentSong.id !== song.id) {
+            performTransition(action);
+        } else {
+            action();
         }
-    }, [currentSong, togglePlay, playlist, sdk.isReady, sdk.deviceId, sdk.play, showToast, playLocalPath, pauseLocal]);
+    }, [currentSong, isPlaying, togglePlay, playlist, sdk, playLocalPath, pauseLocal, performTransition]);
 
     // 7. Spotify Audio Features (Smart Simulation)
     const [trackFeatures, setTrackFeatures] = useState(null);
@@ -423,69 +451,90 @@ export const MusicProvider = ({ children }) => {
 
     // NAVIGATION
     const handleNext = useCallback(() => {
-        if (!playlist.length) return;
+        performTransition(async () => {
+            if (!playlist.length) return;
 
-        const wasEarlySkip = currentTime < duration * SKIP_THRESHOLD;
-        if (currentSong && wasEarlySkip) logSkip(currentSong, true);
+            const wasEarlySkip = currentTime < duration * SKIP_THRESHOLD;
+            if (currentSong && wasEarlySkip) logSkip(currentSong, true);
 
-        const isDisliked = (s) => (s?.myRating || 0) === 1;
-        const playableList = playlist.filter(s => !isDisliked(s));
+            const isDisliked = (s) => (s?.myRating || 0) === 1;
+            const playableList = playlist.filter(s => !isDisliked(s));
 
-        if (playableList.length === 0) {
-            setIsPlaying(false);
-            showToast('אין שירים להשמעה', 'error');
-            return;
-        }
-
-        let nextIndex;
-        if (shuffle) {
-            const random = playableList[Math.floor(Math.random() * playableList.length)];
-            nextIndex = playlist.findIndex(s => s.id === random.id);
-        } else if (repeat === 'one') {
-            nextIndex = playlistIndex;
-        } else {
-            nextIndex = (playlistIndex + 1) % playlist.length;
-            if (nextIndex === 0 && repeat !== 'all') {
+            if (playableList.length === 0) {
                 setIsPlaying(false);
+                showToast('אין שירים להשמעה', 'error');
                 return;
             }
-        }
 
-        // Guard against disliked songs skip
-        let guard = 0;
-        while (guard < playlist.length && isDisliked(playlist[nextIndex])) {
-            nextIndex = (nextIndex + 1) % playlist.length;
-            if (nextIndex === 0 && repeat !== 'all') {
-                setIsPlaying(false);
-                return;
+            let nextIndex;
+            if (shuffle) {
+                const random = playableList[Math.floor(Math.random() * playableList.length)];
+                nextIndex = playlist.findIndex(s => s.id === random.id);
+            } else if (repeat === 'one') {
+                nextIndex = playlistIndex;
+            } else {
+                nextIndex = (playlistIndex + 1) % playlist.length;
+                if (nextIndex === 0 && repeat !== 'all') {
+                    setIsPlaying(false);
+                    return;
+                }
             }
-            guard++;
-        }
 
-        setPlaylistIndex(nextIndex);
-        playSong(playlist[nextIndex]);
-    }, [playlist, playlistIndex, shuffle, repeat, currentTime, duration, playSong, logSkip, showToast]);
+            const nextSong = playlist[nextIndex];
+            if (nextSong) {
+                // Re-implementation of minimal play logic for speed inside transition
+                setCurrentSong(nextSong);
+                setPlaylistIndex(nextIndex);
 
+                const isSpotify = nextSong.file_path?.startsWith('spotify:');
+                if (isSpotify && sdk.isReady) {
+                    const allUris = playlist
+                        .filter(s => s.file_path?.startsWith('spotify:track:') && !isDisliked(s))
+                        .map(s => s.file_path);
+                    await sdk.play(nextSong.file_path, 0, allUris);
+                } else if (!isSpotify) {
+                    await playLocalPath(nextSong.file_path);
+                }
+                setIsPlaying(true);
+            }
+        });
+    }, [playlist, playlistIndex, shuffle, repeat, currentSong, currentTime, duration, sdk, playLocalPath, performTransition]);
     const handlePrevious = useCallback(() => {
-        if (!playlist.length) return;
-        if (currentTime > 3) {
-            seek(0);
-            return;
-        }
+        performTransition(async () => {
+            if (!playlist.length) return;
+            if (currentTime > 3) {
+                seek(0);
+                return;
+            }
 
-        const isDisliked = (s) => (s?.myRating || 0) === 1;
-        let prevIndex = (playlistIndex - 1 + playlist.length) % playlist.length;
+            const isDisliked = (s) => (s?.myRating || 0) === 1;
+            let prevIndex = (playlistIndex - 1 + playlist.length) % playlist.length;
 
-        // Guard against disliked
-        let guard = 0;
-        while (guard < playlist.length && isDisliked(playlist[prevIndex])) {
-            prevIndex = (prevIndex - 1 + playlist.length) % playlist.length;
-            guard++;
-        }
+            // Guard against disliked
+            let guard = 0;
+            while (guard < playlist.length && isDisliked(playlist[prevIndex])) {
+                prevIndex = (prevIndex - 1 + playlist.length) % playlist.length;
+                guard++;
+            }
 
-        setPlaylistIndex(prevIndex);
-        playSong(playlist[prevIndex]);
-    }, [playlist, playlistIndex, currentTime, playSong, seek]);
+            const prevSong = playlist[prevIndex];
+            if (prevSong) {
+                setCurrentSong(prevSong);
+                setPlaylistIndex(prevIndex);
+
+                const isSpotify = prevSong.file_path?.startsWith('spotify:');
+                if (isSpotify && sdk.isReady) {
+                    const allUris = playlist
+                        .filter(s => s.file_path?.startsWith('spotify:track:') && !isDisliked(s))
+                        .map(s => s.file_path);
+                    await sdk.play(prevSong.file_path, 0, allUris);
+                } else if (!isSpotify) {
+                    await playLocalPath(prevSong.file_path);
+                }
+                setIsPlaying(true);
+            }
+        });
+    }, [playlist, playlistIndex, currentTime, sdk, playLocalPath, performTransition, seek]);
 
     // Lifecycle
     useEffect(() => { handleNextRef.current = handleNext; }, [handleNext]);
@@ -522,24 +571,40 @@ export const MusicProvider = ({ children }) => {
         seekLocal(0);
         setCurrentSong(null);
         setIsPlaying(false);
+        setTransitionPhase('stopped');
     }, [pauseLocal, seekLocal]);
 
     // 6. Audio Analysis
-
-    // Real Audio Analysis (only active when local/preview is playing)
-
-    // Real Audio Analysis (only active when local/preview is playing)
     const realAmplitude = useAudioAnalyzer(audioRef, isLocalPlaying || (isPlaying && currentSong?.preview_url && !sdk.isPlaying));
 
     const value = {
-        isPlaying, currentSong, currentTime, duration, volume,
-        playlist, playlistIndex, shuffle, repeat, isLoading, playbackError, toast,
-        playableSongs, showToast, playSong, togglePlay, pause, resume,
-        handleNext, handlePrevious, seek, setVolume, rateSong, stop,
-        setShuffle, setRepeat, setPlaylist,
+        isPlaying,
+        currentSong,
+        currentTime,
+        duration,
+        volume: targetVolumeRef.current,
+        setVolume: updateVolume,
+        isLoading,
+        playbackError,
+        toast,
+        transitionPhase,
+        playableSongs,
+        showToast,
+        playSong,
+        togglePlay,
+        pause,
+        resume,
+        handleNext,
+        handlePrevious,
+        seek,
+        rateSong,
+        stop,
+        setShuffle,
+        setRepeat,
+        setPlaylist,
         clearError: () => setPlaybackError(null),
         audioRef,
-        currentAmplitude: realAmplitude, // Expose to consumers
+        currentAmplitude: realAmplitude,
         trackFeatures
     };
 
