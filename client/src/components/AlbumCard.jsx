@@ -19,7 +19,8 @@ const AlbumCard = ({
     album,
     onPlay,
     onClick,
-    showPlayCount = false
+    showPlayCount = false,
+    hidePlayButton = false
 }) => {
     const handlePlay = (e) => {
         e.stopPropagation();
@@ -82,16 +83,18 @@ const AlbumCard = ({
             </div>
 
             {/* Play button */}
-            <button
-                onClick={handlePlay}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
-                   w-14 h-14 rounded-full music-gradient-purple
-                   flex items-center justify-center
-                   opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300
-                   shadow-lg hover:scale-110 z-10"
-            >
-                <Play className="w-6 h-6 text-white fill-white transform scale-x-[-1] ml-[-2px]" />
-            </button>
+            {!hidePlayButton && (
+                <button
+                    onClick={handlePlay}
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
+                       w-14 h-14 rounded-full music-gradient-purple
+                       flex items-center justify-center
+                       opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300
+                       shadow-lg hover:scale-110 z-10"
+                >
+                    <Play className="w-6 h-6 text-white fill-white" />
+                </button>
+            )}
         </div>
     );
 };

@@ -230,11 +230,11 @@ const MobileFullPlayer = ({ onClose }) => {
                                 {/* Play Button (If not playing/current) */}
                                 {!isViewedSongPlaying ? (
                                     <button className="text-green-500">
-                                        <Play size={24} fill="currentColor" />
+                                        <Play size={24} fill="currentColor" className="ml-1" />
                                     </button>
                                 ) : (
                                     <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white">
-                                        {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
+                                        {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
                                     </button>
                                 )}
                             </div>

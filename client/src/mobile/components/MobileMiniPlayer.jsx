@@ -67,7 +67,7 @@ const MobileMiniPlayer = ({ onExpand }) => {
                         {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
                     </button>
                     <button onClick={handleNext} className="text-white/70 pr-1">
-                        <SkipForward size={22} className="transform scale-x-[-1]" />
+                        <SkipForward size={22} />
                     </button>
                 </div>
 

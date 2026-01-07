@@ -79,7 +79,7 @@ const MobilePlaylists = () => {
                             onClick={() => handlePlaylistPlay(selectedPlaylist)}
                             className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg"
                         >
-                            <Play className="w-6 h-6 text-white fill-white transform scale-x-[-1] ml-[-2px]" />
+                            <Play className="w-6 h-6 text-white fill-white" />
                         </button>
                     </div>
                 </div>
@@ -139,15 +139,6 @@ const MobilePlaylists = () => {
                             )}
                             <div className="absolute inset-x-0 bottom-0 bg-black/70 backdrop-blur-sm p-3">
                                 <h3 className="text-white text-sm font-bold truncate">{playlist.name}</h3>
-                            </div>
-                            {/* Play button overlay */}
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handlePlaylistPlay(playlist); }}
-                                    className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg"
-                                >
-                                    <Play className="w-6 h-6 text-white fill-white transform scale-x-[-1] ml-[-2px]" />
-                                </button>
                             </div>
                         </div>
                     ))}

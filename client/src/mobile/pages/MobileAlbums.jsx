@@ -143,7 +143,7 @@ const MobileAlbums = () => {
                             onClick={() => handleAlbumPlay(selectedAlbum)}
                             className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg"
                         >
-                            <Play className="w-6 h-6 text-white fill-white transform scale-x-[-1] ml-[-2px]" />
+                            <Play className="w-6 h-6 text-white fill-white" />
                         </button>
                     </div>
                 </div>
@@ -192,6 +192,7 @@ const MobileAlbums = () => {
                             album={album}
                             onClick={() => handleAlbumClick(album)}
                             onPlay={() => handleAlbumPlay(album)}
+                            hidePlayButton={true}
                         />
                     ))}
                 </div>
