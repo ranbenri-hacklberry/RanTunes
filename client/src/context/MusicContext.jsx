@@ -98,9 +98,19 @@ export const MusicProvider = ({ children }) => {
     }, []);
 
     // 🔄 SYNC PLAYBACK STATE TO SUPABASE (for iCaffe MiniMusicPlayer)
+    // Only sync when song or playing state changes - NOT on time updates
+    const lastSyncedSongRef = useRef(null);
+    const lastSyncedPlayingRef = useRef(null);
+
     useEffect(() => {
         const syncPlaybackToSupabase = async () => {
             if (!currentUser?.email || !currentSong) return;
+
+            // Only sync if song or playing state actually changed
+            const songChanged = lastSyncedSongRef.current !== currentSong.id;
+            const playingChanged = lastSyncedPlayingRef.current !== isPlaying;
+
+            if (!songChanged && !playingChanged) return;
 
             try {
                 const playbackData = {
@@ -122,15 +132,21 @@ export const MusicProvider = ({ children }) => {
                     .from('music_current_playback')
                     .upsert(playbackData, { onConflict: 'user_email' });
 
+                // Update refs after successful sync
+                lastSyncedSongRef.current = currentSong.id;
+                lastSyncedPlayingRef.current = isPlaying;
+
+                console.log('🔄 Synced playback:', currentSong.title, isPlaying ? '▶️' : '⏸️');
+
             } catch (err) {
                 console.error('Failed to sync playback to Supabase:', err);
             }
         };
 
-        // Debounce the sync to avoid too many updates
-        const timeoutId = setTimeout(syncPlaybackToSupabase, 500);
+        // Small debounce to let playback actually start
+        const timeoutId = setTimeout(syncPlaybackToSupabase, 800);
         return () => clearTimeout(timeoutId);
-    }, [currentUser, currentSong, isPlaying, currentTime, duration]);
+    }, [currentUser, currentSong?.id, isPlaying]);
 
     // 🎮 LISTEN FOR REMOTE COMMANDS FROM iCaffe MiniMusicPlayer
     useEffect(() => {
