@@ -6,69 +6,59 @@ const AnalogAmplifier = ({ isPlaying, realAmplitude, trackFeatures }) => {
     const [rightNeedle, setRightNeedle] = useState(-45);
 
     useEffect(() => {
-        let interval;
-        if (isPlaying) {
-            interval = setInterval(() => {
-                let level = -45;
+        let frameId;
+        let lastUpdate = Date.now();
 
-                if (realAmplitude !== null && realAmplitude !== undefined) {
-                    // REAL AUDIO VISUALIZATION (Local/Preview)
-                    const normalized = realAmplitude / 255;
-                    const boosted = Math.min(1, normalized * 1.5);
-                    level = -45 + (boosted * 50);
+        const updateNeedles = () => {
+            if (!isPlaying) {
+                setLeftNeedle(-45);
+                setRightNeedle(-45);
+                frameId = requestAnimationFrame(updateNeedles);
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastUpdate < 40) { // Limit to ~25fps for mobile battery
+                frameId = requestAnimationFrame(updateNeedles);
+                return;
+            }
+            lastUpdate = now;
+
+            let level = -45;
+
+            if (realAmplitude !== null && realAmplitude !== undefined) {
+                const normalized = realAmplitude / 255;
+                const boosted = Math.min(1, normalized * 1.5);
+                level = -45 + (boosted * 50);
+            } else if (trackFeatures) {
+                const { tempo, energy, danceability } = trackFeatures;
+                // Safety check: tempo must be > 0 to avoid division by zero
+                if (tempo && tempo > 0 && energy !== undefined) {
+                    const beatInterval = 60000 / tempo;
+                    const timeInBeat = now % beatInterval;
+                    const isOnBeat = timeInBeat < 100;
+                    const baseLevel = -30 + (energy * 20);
+                    const kickStrength = isOnBeat ? (danceability * 15) : 0;
+                    const jitter = (Math.random() - 0.5) * (energy * 10);
+                    level = Math.min(5, baseLevel + kickStrength + jitter);
                 } else {
-                    // SMART SIMULATION (Spotify w/ Audio Features)
-                    if (trackFeatures) {
-                        const { tempo, energy, danceability } = trackFeatures;
-
-                        if (tempo && energy !== undefined) {
-                            // 1. BPM Sync
-                            // Calculate beat interval in ms
-                            const beatInterval = 60000 / tempo;
-
-                            // Check if we are "on beat" (within a 100ms window)
-                            const now = Date.now();
-                            const timeInBeat = now % beatInterval;
-                            const isOnBeat = timeInBeat < 100;
-
-                            // 2. Base Energy Level
-                            // Energy is 0.0 to 1.0. Map to -20 to 0 base.
-                            const baseLevel = -30 + (energy * 20);
-
-                            // 3. Kick Strength
-                            // Danceability controls how "hard" the kick hits
-                            const kickStrength = isOnBeat ? (danceability * 15) : 0;
-
-                            // 4. Jitter
-                            // Random movement based on energy
-                            const jitter = (Math.random() - 0.5) * (energy * 10);
-
-                            level = Math.min(5, baseLevel + kickStrength + jitter);
-                        } else {
-                            // Fallback simulation inside trackFeatures if data is missing
-                            const r = Math.random();
-                            level = -20 + (r * 10);
-                        }
-                    } else {
-                        // FALLBACK SIMULATION (No Data)
-                        const r = Math.random();
-                        const base = -20 + (r * 15);
-                        const beat = (Date.now() % 1000) < 200 ? 10 : 0;
-                        const jitter = (Math.random() - 0.5) * 5;
-                        level = Math.min(5, base + beat + jitter);
-                    }
+                    level = -20 + (Math.random() * 10);
                 }
+            } else {
+                const base = -20 + (Math.random() * 15);
+                const beat = (now % 1000) < 200 ? 10 : 0;
+                const jitter = (Math.random() - 0.5) * 5;
+                level = Math.min(5, base + beat + jitter);
+            }
 
-                setLeftNeedle(prev => prev + (level - prev) * 0.3);
-                setRightNeedle(prev => prev + (level - prev + (Math.random() * 4 - 2)) * 0.3);
+            setLeftNeedle(prev => prev + (level - prev) * 0.3);
+            setRightNeedle(prev => prev + (level - prev + (Math.random() * 4 - 2)) * 0.3);
 
-            }, 40);
-        } else {
-            setLeftNeedle(-45);
-            setRightNeedle(-45);
-        }
+            frameId = requestAnimationFrame(updateNeedles);
+        };
 
-        return () => clearInterval(interval);
+        frameId = requestAnimationFrame(updateNeedles);
+        return () => cancelAnimationFrame(frameId);
     }, [isPlaying, realAmplitude, trackFeatures]);
 
     return (

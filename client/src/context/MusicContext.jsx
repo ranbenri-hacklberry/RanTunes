@@ -112,11 +112,16 @@ export const MusicProvider = ({ children }) => {
                         const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 1500;
 
                         if (spotifyUri && currentSongRef.current?.file_path !== spotifyUri) {
-                            if (recentlyManualLoaded && (currentSongRef.current?.file_path === spotifyUri || currentSongRef.current?.id === state.item.id)) {
+                            // High-Fidelity Sync:
+                            // We only return (skip update) if the manual load was for THIS SPECIFIC SONG.
+                            // If the remote song is already different, it means the user or another device 
+                            // has moved on, so we MUST update the UI regardless of the timer.
+                            const isManualTrack = currentSongRef.current?.id === state.item.id || currentSongRef.current?.file_path === spotifyUri;
+                            if (recentlyManualLoaded && isManualTrack) {
                                 return;
                             }
 
-                            console.log('🎵 [RemoteSync] Track update:', state.item.name);
+                            console.log('🎵 [RemoteSync] Resolving Track Change:', state.item.name);
                             const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri || (s.id && spotifyUri.includes(s.id))));
 
                             if (matchedSong) {

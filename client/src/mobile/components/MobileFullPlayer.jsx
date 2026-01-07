@@ -75,13 +75,10 @@ const MobileFullPlayer = ({ onClose }) => {
         setIsScrubbing(false);
     };
 
-    // Carousel Logic
-    const handleDragEnd = (e, { offset, velocity }) => {
-        const swipe = offset.x; // RTL considerations? Framer Motion usually handles LTR coordinates
-
-        // If RTL, swipe left (negative) means NEXT? No, keep standard swipe behavior:
-        // Swipe Left (negative x) -> Next Item
-        // Swipe Right (positive x) -> Prev Item
+    // Safe Carousel Logic
+    const handleDragEnd = (e, { offset }) => {
+        if (!playlist || playlist.length === 0) return;
+        const swipe = offset.x;
 
         if (swipe < -100) {
             // Next
@@ -94,10 +91,15 @@ const MobileFullPlayer = ({ onClose }) => {
         }
     };
 
-    const viewedSong = playlist[viewIndex] || currentSong;
+    const viewedSong = (playlist && playlist[viewIndex]) || currentSong;
     const isViewedSongPlaying = viewedSong?.id === currentSong?.id;
 
-    if (!currentSong) return null;
+    if (!currentSong) return (
+        <div className="fixed inset-0 z-50 bg-[#1a1a2e] flex flex-col items-center justify-center p-12">
+            <div className="w-12 h-12 border-4 border-white/10 border-t-green-500 rounded-full animate-spin mb-4"></div>
+            <p className="text-white/40 text-[10px] font-bold tracking-widest uppercase">Connecting Spotify...</p>
+        </div>
+    );
 
     return (
         <motion.div
