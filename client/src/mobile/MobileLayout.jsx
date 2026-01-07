@@ -99,7 +99,7 @@ const MobileLayout = () => {
                     <div className="flex flex-col">
                         <h1 className="text-white text-base font-bold leading-tight">RanTunes</h1>
                         <div className="flex items-center gap-1.5">
-                            <span className="text-white/30 text-[8px] uppercase tracking-widest font-black">Mobile v1.4.2</span>
+                            <span className="text-white/30 text-[8px] uppercase tracking-widest font-black">Mobile v1.4.5</span>
                             {isRemoteMode && (
                                 <div className="flex items-center gap-1 bg-green-500/10 px-1.5 py-0.5 rounded-md border border-green-500/20">
                                     <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse"></div>
@@ -111,15 +111,15 @@ const MobileLayout = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {isRemoteMode && (
+                    {SpotifyService.isSpotifyLoggedIn() && (
                         <button
                             onClick={() => {
                                 fetchSpotifyDevices();
                                 setShowDevicePicker(true);
                             }}
-                            className="bg-green-500/10 p-2 rounded-xl border border-green-500/20 active:scale-90 transition-transform"
+                            className={`${isRemoteMode ? 'bg-green-500/20' : 'bg-white/5'} p-2 rounded-xl border ${isRemoteMode ? 'border-green-500/30' : 'border-white/10'} active:scale-90 transition-all`}
                         >
-                            <Monitor className="w-5 h-5 text-green-400" />
+                            <Monitor className={`w-5 h-5 ${isRemoteMode ? 'text-green-400' : 'text-white/50'}`} />
                         </button>
                     )}
                     <button

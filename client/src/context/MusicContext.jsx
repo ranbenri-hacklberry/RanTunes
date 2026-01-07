@@ -109,6 +109,13 @@ export const MusicProvider = ({ children }) => {
                         if (state.item) {
                             setDuration((state.item.duration_ms || 0) / 1000);
 
+                            // 5.8 Protect against UI flicker during song change
+                            const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 2000;
+                            if (recentlyManualLoaded) {
+                                console.log('🎵 [SpotifyPolling] Skipping sync - recently manually changed');
+                                return;
+                            }
+
                             // Sync metadata if different
                             const spotifyUri = state.item.uri;
                             if (spotifyUri && currentSongRef.current?.file_path !== spotifyUri) {
@@ -116,6 +123,8 @@ export const MusicProvider = ({ children }) => {
                                 const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
                                 if (matchedSong) {
                                     setCurrentSong(matchedSong);
+                                    const idx = playlistRef.current.findIndex(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
+                                    if (idx >= 0) setPlaylistIndex(idx);
                                 } else {
                                     setCurrentSong({
                                         id: state.item.id || spotifyUri,
@@ -147,7 +156,7 @@ export const MusicProvider = ({ children }) => {
             }
         };
 
-        const interval = setInterval(pollSpotifyState, 5000); // Poll every 5 seconds
+        const interval = setInterval(pollSpotifyState, 3000); // Increased frequency for better responsiveness
         pollSpotifyState(); // Initial check
 
         return () => clearInterval(interval);
@@ -214,10 +223,7 @@ export const MusicProvider = ({ children }) => {
         const isSpotify = currentSong?.file_path?.startsWith('spotify:');
         if (isSpotify && sdk.isReady && !sdk.error) {
             // 1. Sync Playback State
-            const now = Date.now();
-            const recentlyLoaded = now - lastLoadTimeRef.current < 2000;
-
-            if (!isLoading && !recentlyLoaded) {
+            if (!isLoading && !isRemoteMode) {
                 setIsPlaying(sdk.isPlaying);
             }
 
@@ -227,17 +233,18 @@ export const MusicProvider = ({ children }) => {
             // 2. Sync Metadata (Handle auto-advance/external changes)
             if (sdk.currentTrack && !isRemoteMode) {
                 const spotifyUri = `spotify:track:${sdk.currentTrack.id}`;
-                if (currentSong?.file_path !== spotifyUri) {
-                    const matchedSong = playlist.find(s => s.file_path === spotifyUri);
+                if (currentSongRef.current?.file_path !== spotifyUri) {
+                    // Try to find in playlist using path or id
+                    const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
                     if (matchedSong) {
                         setCurrentSong(matchedSong);
-                        const idx = playlist.findIndex(s => s.id === matchedSong.id);
+                        const idx = playlistRef.current.findIndex(s => s && (s.id === matchedSong.id || s.file_path === spotifyUri));
                         if (idx >= 0) setPlaylistIndex(idx);
                     }
                 }
             }
         }
-    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, currentSong, isLoading, playlist, isRemoteMode]);
+    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, isLoading, isRemoteMode]);
 
     const showToast = useCallback((message, type = 'info') => {
         setToast({ message, type, id: Date.now() });
@@ -514,22 +521,40 @@ export const MusicProvider = ({ children }) => {
     }, [currentSong]);
 
     const pause = useCallback(async () => {
+        if (isRemoteMode) {
+            try {
+                await SpotifyService.pause();
+                setIsPlaying(false);
+            } catch (err) { console.error('Remote pause failed:', err); }
+            return;
+        }
+
         if (currentSong?.file_path?.startsWith('spotify:')) {
             if (sdk.isReady) await sdk.pause();
-            else (await import('@/lib/spotifyService')).default.pause();
+            else SpotifyService.pause();
+            setIsPlaying(false);
         } else {
             pauseLocal();
         }
-    }, [currentSong, sdk, pauseLocal]);
+    }, [currentSong, sdk, pauseLocal, isRemoteMode]);
 
     const resume = useCallback(async () => {
+        if (isRemoteMode) {
+            try {
+                await SpotifyService.play();
+                setIsPlaying(true);
+            } catch (err) { console.error('Remote resume failed:', err); }
+            return;
+        }
+
         if (currentSong?.file_path?.startsWith('spotify:')) {
             if (sdk.isReady) await sdk.resume();
-            else (await import('@/lib/spotifyService')).default.play();
+            else SpotifyService.play();
+            setIsPlaying(true);
         } else {
             resumeLocal();
         }
-    }, [currentSong, sdk, resumeLocal]);
+    }, [currentSong, sdk, resumeLocal, isRemoteMode]);
 
     const seek = useCallback((time) => {
         if (currentSong?.file_path?.startsWith('spotify:') && sdk.isReady) {

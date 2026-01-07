@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, SkipForward, ChevronUp } from 'lucide-react';
+import { Play, Pause, SkipForward, ChevronUp, Monitor } from 'lucide-react';
 import { useMusic } from '@/context/MusicContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import SpotifyDevicePicker from '@/components/SpotifyDevicePicker';
 
 const MobileMiniPlayer = ({ onExpand }) => {
     const {
@@ -10,8 +11,11 @@ const MobileMiniPlayer = ({ onExpand }) => {
         togglePlay,
         handleNext,
         currentTime,
-        duration
+        duration,
+        isRemoteMode
     } = useMusic();
+
+    const [showDevicePicker, setShowDevicePicker] = useState(false);
 
     if (!currentSong) return null;
 
@@ -50,14 +54,29 @@ const MobileMiniPlayer = ({ onExpand }) => {
                 </div>
 
                 {/* Controls */}
-                <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    {currentSong?.file_path?.startsWith('spotify:') && (
+                        <button
+                            onClick={() => setShowDevicePicker(true)}
+                            className={`p-2 rounded-lg ${isRemoteMode ? 'text-green-400 bg-green-500/10' : 'text-white/40 hover:text-white transition-colors'}`}
+                        >
+                            <Monitor size={18} />
+                        </button>
+                    )}
                     <button onClick={togglePlay} className="w-8 h-8 flex items-center justify-center text-white">
                         {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
                     </button>
-                    <button onClick={handleNext} className="text-white/70">
+                    <button onClick={handleNext} className="text-white/70 pr-1">
                         <SkipForward size={22} className="transform scale-x-[-1]" />
                     </button>
                 </div>
+
+                {/* Device Picker Modal */}
+                <AnimatePresence>
+                    {showDevicePicker && (
+                        <SpotifyDevicePicker onClose={() => setShowDevicePicker(false)} />
+                    )}
+                </AnimatePresence>
 
 
             </div>

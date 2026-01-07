@@ -103,9 +103,7 @@ const MobilePlaylists = () => {
 
     // Playlists grid view
     return (
-        <div className="p-4">
-            <h1 className="text-2xl font-bold mb-6 mt-2 text-white">פלייליסטים</h1>
-
+        <div className="p-4 pt-0">
             {isLoading && playlists.length === 0 ? (
                 <div className="flex justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-purple-500" />

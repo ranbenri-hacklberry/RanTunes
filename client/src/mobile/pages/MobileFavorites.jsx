@@ -42,14 +42,7 @@ const MobileFavorites = () => {
     };
 
     return (
-        <div className="p-4">
-            <div className="flex items-center gap-3 mb-6 mt-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500/30 to-red-500/30 flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-pink-400" />
-                </div>
-                <h1 className="text-2xl font-bold text-white">מועדפים</h1>
-            </div>
-
+        <div className="p-4 pt-0">
             {loading ? (
                 <div className="flex justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-purple-500" />

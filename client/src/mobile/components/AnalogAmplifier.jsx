@@ -21,28 +21,34 @@ const AnalogAmplifier = ({ isPlaying, realAmplitude, trackFeatures }) => {
                     if (trackFeatures) {
                         const { tempo, energy, danceability } = trackFeatures;
 
-                        // 1. BPM Sync
-                        // Calculate beat interval in ms
-                        const beatInterval = 60000 / tempo;
+                        if (tempo && energy !== undefined) {
+                            // 1. BPM Sync
+                            // Calculate beat interval in ms
+                            const beatInterval = 60000 / tempo;
 
-                        // Check if we are "on beat" (within a 100ms window)
-                        const now = Date.now();
-                        const timeInBeat = now % beatInterval;
-                        const isOnBeat = timeInBeat < 100;
+                            // Check if we are "on beat" (within a 100ms window)
+                            const now = Date.now();
+                            const timeInBeat = now % beatInterval;
+                            const isOnBeat = timeInBeat < 100;
 
-                        // 2. Base Energy Level
-                        // Energy is 0.0 to 1.0. Map to -20 to 0 base.
-                        const baseLevel = -30 + (energy * 20);
+                            // 2. Base Energy Level
+                            // Energy is 0.0 to 1.0. Map to -20 to 0 base.
+                            const baseLevel = -30 + (energy * 20);
 
-                        // 3. Kick Strength
-                        // Danceability controls how "hard" the kick hits
-                        const kickStrength = isOnBeat ? (danceability * 15) : 0;
+                            // 3. Kick Strength
+                            // Danceability controls how "hard" the kick hits
+                            const kickStrength = isOnBeat ? (danceability * 15) : 0;
 
-                        // 4. Jitter
-                        // Random movement based on energy
-                        const jitter = (Math.random() - 0.5) * (energy * 10);
+                            // 4. Jitter
+                            // Random movement based on energy
+                            const jitter = (Math.random() - 0.5) * (energy * 10);
 
-                        level = Math.min(5, baseLevel + kickStrength + jitter);
+                            level = Math.min(5, baseLevel + kickStrength + jitter);
+                        } else {
+                            // Fallback simulation inside trackFeatures if data is missing
+                            const r = Math.random();
+                            level = -20 + (r * 10);
+                        }
                     } else {
                         // FALLBACK SIMULATION (No Data)
                         const r = Math.random();
