@@ -77,8 +77,6 @@ const MobileMiniPlayer = ({ onExpand }) => {
                         <SpotifyDevicePicker onClose={() => setShowDevicePicker(false)} />
                     )}
                 </AnimatePresence>
-
-
             </div>
             {/* Playing Bar - Attached to bottom of player card */}
             <div className="mx-2 -mt-[2px]" dir="rtl">

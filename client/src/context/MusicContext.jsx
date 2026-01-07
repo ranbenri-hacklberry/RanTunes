@@ -91,15 +91,23 @@ export const MusicProvider = ({ children }) => {
             const state = await SpotifyService.getPlaybackState();
 
             if (state && state.device) {
-                const isLocal = sdk.deviceId && state.device.id === sdk.deviceId;
+                // Semantic Check: RanTunes uses "RanTunes Mobile" or "RanTunes Desktop"
+                const deviceName = state.device.name || '';
+                const isLocalByName = deviceName.includes('RanTunes');
+                const isLocalById = sdk.deviceId && state.device.id === sdk.deviceId;
+                const isLocal = isLocalById || isLocalByName;
+
                 setActiveDeviceId(state.device.id);
 
                 if (!isLocal) {
-                    if (!isRemoteMode) console.log('🎵 [RemoteSync] Switching to REMOTE mode:', state.device.name);
+                    if (!isRemoteMode) console.log('🎵 [RemoteSync] REMOTE Mode:', state.device.name);
                     setIsRemoteMode(true);
                     setRemoteDeviceName(state.device.name);
-                    setIsPlaying(state.is_playing);
-                    setCurrentTime((state.progress_ms || 0) / 1000);
+
+                    if (isPlaying !== state.is_playing) setIsPlaying(state.is_playing);
+
+                    const newTime = (state.progress_ms || 0) / 1000;
+                    if (Math.abs(currentTime - newTime) > 2) setCurrentTime(newTime);
 
                     if (state.item) {
                         setDuration((state.item.duration_ms || 0) / 1000);
@@ -135,12 +143,12 @@ export const MusicProvider = ({ children }) => {
                         }
                     }
                 } else {
-                    if (isRemoteMode) console.log('🎵 [RemoteSync] Switching to LOCAL mode');
+                    if (isRemoteMode) console.log('🎵 [RemoteSync] Back to LOCAL mode');
                     setIsRemoteMode(false);
                     setRemoteDeviceName(null);
                 }
             } else {
-                if (isRemoteMode) console.log('🎵 [RemoteSync] No active device, leaving remote mode');
+                if (isRemoteMode) console.log('🎵 [RemoteSync] Session ended');
                 setIsRemoteMode(false);
                 setRemoteDeviceName(null);
                 setActiveDeviceId(null);
@@ -148,7 +156,7 @@ export const MusicProvider = ({ children }) => {
         } catch (err) {
             console.warn('Spotify Remote Sync Error:', err);
         }
-    }, [sdk.deviceId, isRemoteMode]);
+    }, [sdk.deviceId, isRemoteMode, isPlaying, currentTime, duration]);
 
     useEffect(() => {
         if (!SpotifyService.isSpotifyLoggedIn()) return;
@@ -219,18 +227,21 @@ export const MusicProvider = ({ children }) => {
         if (isSpotify && sdk.isReady && !sdk.error) {
             // 1. Sync Playback State
             if (!isLoading && !isRemoteMode) {
-                setIsPlaying(sdk.isPlaying);
-            }
+                // Ensure values have actually changed before updating state
+                if (isPlaying !== sdk.isPlaying) setIsPlaying(sdk.isPlaying);
 
-            if (sdk.position > 0 && !isRemoteMode) setCurrentTime(sdk.position / 1000);
-            if (sdk.duration > 0 && !isRemoteMode) setDuration(sdk.duration / 1000);
+                const newTime = sdk.position / 1000;
+                if (Math.abs(currentTime - newTime) > 1.5) setCurrentTime(newTime);
+
+                const newDuration = sdk.duration / 1000;
+                if (duration !== newDuration) setDuration(newDuration);
+            }
 
             // 2. Sync Metadata (Handle auto-advance/external changes)
             if (sdk.currentTrack && !isRemoteMode) {
                 const spotifyUri = `spotify:track:${sdk.currentTrack.id}`;
                 if (currentSongRef.current?.file_path !== spotifyUri) {
-                    // Try to find in playlist using path or id
-                    const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
+                    const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri || (s.id && spotifyUri.includes(s.id))));
                     if (matchedSong) {
                         setCurrentSong(matchedSong);
                         const idx = playlistRef.current.findIndex(s => s && (s.id === matchedSong.id || s.file_path === spotifyUri));
@@ -239,7 +250,7 @@ export const MusicProvider = ({ children }) => {
                 }
             }
         }
-    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, isLoading, isRemoteMode]);
+    }, [sdk.isPlaying, sdk.position, sdk.duration, sdk.isReady, sdk.currentTrack, isLoading, isRemoteMode, currentSong?.id]);
 
     const showToast = useCallback((message, type = 'info') => {
         setToast({ message, type, id: Date.now() });
