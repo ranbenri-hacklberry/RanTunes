@@ -97,6 +97,41 @@ export const MusicProvider = ({ children }) => {
         ), 3000);
     }, []);
 
+    // 🔄 SYNC PLAYBACK STATE TO SUPABASE (for iCaffe MiniMusicPlayer)
+    useEffect(() => {
+        const syncPlaybackToSupabase = async () => {
+            if (!currentUser?.email || !currentSong) return;
+
+            try {
+                const playbackData = {
+                    user_email: currentUser.email,
+                    user_id: currentUser.id,
+                    song_id: currentSong.id,
+                    song_title: currentSong.title || currentSong.name || 'Unknown',
+                    artist_name: currentSong.artist?.name || currentSong.artist_name || 'Unknown Artist',
+                    album_name: currentSong.album?.name || currentSong.album_name || '',
+                    cover_url: currentSong.album?.cover_url || currentSong.cover_url || currentSong.album?.images?.[0]?.url || '',
+                    spotify_uri: currentSong.file_path?.startsWith('spotify:') ? currentSong.file_path : null,
+                    is_playing: isPlaying,
+                    position_ms: Math.floor(currentTime * 1000),
+                    duration_ms: Math.floor(duration * 1000),
+                    updated_at: new Date().toISOString()
+                };
+
+                await supabase
+                    .from('music_current_playback')
+                    .upsert(playbackData, { onConflict: 'user_email' });
+
+            } catch (err) {
+                console.error('Failed to sync playback to Supabase:', err);
+            }
+        };
+
+        // Debounce the sync to avoid too many updates
+        const timeoutId = setTimeout(syncPlaybackToSupabase, 500);
+        return () => clearTimeout(timeoutId);
+    }, [currentUser, currentSong, isPlaying, currentTime, duration]);
+
     const playableSongs = useMemo(() =>
         playlist.filter(s => (s?.myRating || 0) !== 1),
         [playlist]);
