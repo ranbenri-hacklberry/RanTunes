@@ -85,82 +85,72 @@ export const MusicProvider = ({ children }) => {
     }, [isPlaying]);
 
     // 5.7 Intelligent Remote Control / Auto-Sync
-    // Polls Spotify for state if something is playing elsewhere
-    useEffect(() => {
+    const syncSpotifyRemote = useCallback(async () => {
         if (!SpotifyService.isSpotifyLoggedIn()) return;
+        try {
+            const state = await SpotifyService.getPlaybackState();
 
-        const pollSpotifyState = async () => {
-            try {
-                const state = await SpotifyService.getPlaybackState();
+            if (state && state.device) {
+                const isLocal = sdk.deviceId && state.device.id === sdk.deviceId;
+                setActiveDeviceId(state.device.id);
 
-                // If there's an active device and it's NOT our local SDK
-                if (state && state.device) {
-                    const isLocal = state.device.id === sdk.deviceId;
-                    setActiveDeviceId(state.device.id);
+                if (!isLocal) {
+                    if (!isRemoteMode) console.log('🎵 [RemoteSync] Switching to REMOTE mode:', state.device.name);
+                    setIsRemoteMode(true);
+                    setRemoteDeviceName(state.device.name);
+                    setIsPlaying(state.is_playing);
+                    setCurrentTime((state.progress_ms || 0) / 1000);
 
-                    if (!isLocal) {
-                        setIsRemoteMode(true);
-                        setRemoteDeviceName(state.device.name);
+                    if (state.item) {
+                        setDuration((state.item.duration_ms || 0) / 1000);
+                        const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 2000;
+                        if (recentlyManualLoaded) return;
 
-                        // Sync playback state
-                        setIsPlaying(state.is_playing);
-                        setCurrentTime((state.progress_ms || 0) / 1000);
-
-                        if (state.item) {
-                            setDuration((state.item.duration_ms || 0) / 1000);
-
-                            // 5.8 Protect against UI flicker during song change
-                            const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 2000;
-                            if (recentlyManualLoaded) {
-                                console.log('🎵 [SpotifyPolling] Skipping sync - recently manually changed');
-                                return;
-                            }
-
-                            // Sync metadata if different
-                            const spotifyUri = state.item.uri;
-                            if (spotifyUri && currentSongRef.current?.file_path !== spotifyUri) {
-                                // Try to find in playlist or create a dummy song object
-                                const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
-                                if (matchedSong) {
-                                    setCurrentSong(matchedSong);
-                                    const idx = playlistRef.current.findIndex(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
-                                    if (idx >= 0) setPlaylistIndex(idx);
-                                } else {
-                                    setCurrentSong({
-                                        id: state.item.id || spotifyUri,
-                                        title: state.item.name || 'Spotify Track',
-                                        file_path: state.item.uri,
-                                        album: {
-                                            name: state.item.album?.name,
-                                            cover_url: state.item.album?.images?.[0]?.url
-                                        },
-                                        artist: { name: state.item.artists?.[0]?.name || 'Unknown Artist' },
-                                        duration_seconds: Math.round((state.item.duration_ms || 0) / 1000)
-                                    });
-                                }
+                        const spotifyUri = state.item.uri;
+                        if (spotifyUri && currentSongRef.current?.file_path !== spotifyUri) {
+                            console.log('🎵 [RemoteSync] Track change detected on remote:', state.item.name);
+                            const matchedSong = playlistRef.current.find(s => s && (s.file_path === spotifyUri || s.id === spotifyUri));
+                            if (matchedSong) {
+                                setCurrentSong(matchedSong);
+                                const idx = playlistRef.current.findIndex(s => s && (s.id === matchedSong.id || s.file_path === spotifyUri));
+                                if (idx >= 0) setPlaylistIndex(idx);
+                            } else {
+                                setCurrentSong({
+                                    id: state.item.id || spotifyUri,
+                                    title: state.item.name || 'Spotify Track',
+                                    file_path: state.item.uri,
+                                    album: {
+                                        name: state.item.album?.name,
+                                        cover_url: state.item.album?.images?.[0]?.url
+                                    },
+                                    artist: { name: state.item.artists?.[0]?.name || 'Unknown Artist' },
+                                    duration_seconds: Math.round((state.item.duration_ms || 0) / 1000)
+                                });
                             }
                         }
-                    } else {
-                        // It's local, let the useSpotifyPlayer hook handle it mostly, 
-                        // but we can set isRemoteMode to false
-                        setIsRemoteMode(false);
-                        setRemoteDeviceName(null);
                     }
                 } else {
+                    if (isRemoteMode) console.log('🎵 [RemoteSync] Switching to LOCAL mode');
                     setIsRemoteMode(false);
                     setRemoteDeviceName(null);
-                    setActiveDeviceId(null);
                 }
-            } catch (err) {
-                console.warn('Spotify Polling Error:', err);
+            } else {
+                if (isRemoteMode) console.log('🎵 [RemoteSync] No active device, leaving remote mode');
+                setIsRemoteMode(false);
+                setRemoteDeviceName(null);
+                setActiveDeviceId(null);
             }
-        };
+        } catch (err) {
+            console.warn('Spotify Remote Sync Error:', err);
+        }
+    }, [sdk.deviceId, isRemoteMode]);
 
-        const interval = setInterval(pollSpotifyState, 3000); // Increased frequency for better responsiveness
-        pollSpotifyState(); // Initial check
-
+    useEffect(() => {
+        if (!SpotifyService.isSpotifyLoggedIn()) return;
+        const interval = setInterval(syncSpotifyRemote, 3000);
+        syncSpotifyRemote();
         return () => clearInterval(interval);
-    }, [sdk.deviceId]); // Stable dependency
+    }, [syncSpotifyRemote]);
 
     // Perform smooth fade transition
     const performTransition = useCallback(async (action) => {
@@ -714,15 +704,30 @@ export const MusicProvider = ({ children }) => {
 
     const transferPlayback = useCallback(async (deviceId) => {
         try {
+            console.log('🎵 [MusicContext] Transferring playback to:', deviceId);
+            setIsLoading(true); // Show loading during handover
+
             await SpotifyService.transferPlayback(deviceId, true);
-            // After transfer, sync state might take a second
-            setTimeout(fetchSpotifyDevices, 1000);
+
+            // 1. Optimistic Update: Set remote mode immediately to prevent SDK interference
+            setIsRemoteMode(true);
+            setIsPlaying(true);
+
+            // 2. Wait 1.5s for Spotify backend to settle before polling
+            // This is critical because Spotify API often returns old state for ~1s after transfer
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            await syncSpotifyRemote();
+            await fetchSpotifyDevices();
+
+            setIsLoading(false);
             return true;
         } catch (error) {
             console.error('Error transferring playback:', error);
+            setIsLoading(false);
             return false;
         }
-    }, [fetchSpotifyDevices]);
+    }, [fetchSpotifyDevices, syncSpotifyRemote]);
 
     // 6. Audio Analysis
     const realAmplitude = useAudioAnalyzer(audioRef, isLocalPlaying || (isPlaying && currentSong?.preview_url && !sdk.isPlaying));
