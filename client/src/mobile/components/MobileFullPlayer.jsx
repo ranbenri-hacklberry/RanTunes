@@ -133,7 +133,7 @@ const MobileFullPlayer = ({ onClose }) => {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col overflow-hidden"
+            className="fixed inset-x-0 top-0 bottom-16 z-50 flex flex-col overflow-hidden" // bottom-16 to leave space for navbar
             style={GRADIENT_STYLE}
             dir={direction}
         >
@@ -173,10 +173,10 @@ const MobileFullPlayer = ({ onClose }) => {
             </AnimatePresence>
 
             {/* Main Content Areas */}
-            <div className="flex-1 flex flex-col w-full relative z-10 px-4 pb-8 overflow-hidden">
+            <div className="flex-1 flex flex-col w-full relative z-10 px-4 pb-4 overflow-hidden">
 
-                {/* 1. Vinyl - Top Centered (Flexible space above and below) */}
-                <div className="flex-1 flex items-center justify-center min-h-0">
+                {/* 1. Vinyl - Top Centered (Flexible space) */}
+                <div className="flex-1 flex items-center justify-center min-h-0 mb-4">
                     <div className="relative" style={{ transform: 'scale(1)' }}>
                         <VinylTurntable
                             song={currentSong}
@@ -188,7 +188,33 @@ const MobileFullPlayer = ({ onClose }) => {
                     </div>
                 </div>
 
-                {/* 2. Song Info Carousel (Restored full card swipe) */}
+                {/* 2. Controls & Seek (Moved Up) */}
+                <div className="w-full max-w-[400px] mx-auto shrink-0 mb-4">
+                    <SeekControl
+                        currentTime={currentTime}
+                        duration={duration}
+                        scrubValue={scrubValue}
+                        isScrubbing={isScrubbing}
+                        onScrub={handleScrub}
+                        onScrubEnd={handleScrubEnd}
+                    />
+
+                    <PlaybackControls
+                        isPlaying={isPlaying}
+                        onPlayPause={togglePlay}
+                        onNext={handleNext}
+                        onPrevious={handlePrevious}
+                        isShuffle={shuffle}
+                        onShuffleToggle={() => setShuffle(!shuffle)}
+                        repeatMode={repeat}
+                        onRepeatToggle={() => {
+                            const nextMode = repeat === 'off' ? 'context' : (repeat === 'context' ? 'track' : 'off');
+                            setRepeat(nextMode);
+                        }}
+                    />
+                </div>
+
+                {/* 3. Song Info Carousel (Moved to Bottom above Navbar) */}
                 <SongInfoCarousel
                     playlist={playlist}
                     viewIndex={viewIndex}
@@ -198,32 +224,6 @@ const MobileFullPlayer = ({ onClose }) => {
                     onLike={handleCarouselLike}
                     onPlayPause={handleCarouselPlayPause}
                     isPlaying={isPlaying}
-                />
-
-                {/* 3. Progress Bar */}
-                <SeekControl
-                    currentTime={currentTime}
-                    duration={duration}
-                    scrubValue={scrubValue}
-                    isScrubbing={isScrubbing}
-                    onScrub={handleScrub}
-                    onScrubEnd={handleScrubEnd}
-                />
-
-                {/* 4. Playback Controls (Restored replacing Amplifier) */}
-                <PlaybackControls
-                    isPlaying={isPlaying}
-                    onPlayPause={togglePlay}
-                    onNext={handleNext}
-                    onPrevious={handlePrevious}
-                    isShuffle={shuffle}
-                    onShuffleToggle={() => setShuffle(!shuffle)}
-                    repeatMode={repeat} // 'off', 'context', 'track'
-                    onRepeatToggle={() => {
-                        // Cycle repeat modes: off -> context -> track -> off
-                        const nextMode = repeat === 'off' ? 'context' : (repeat === 'context' ? 'track' : 'off');
-                        setRepeat(nextMode);
-                    }}
                 />
 
                 <AnimatePresence>
