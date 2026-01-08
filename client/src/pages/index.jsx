@@ -543,6 +543,32 @@ const MusicPageContent = () => {
                                         <h2 className="text-white text-2xl font-bold truncate">{selectedAlbum.name}</h2>
                                         <p className="text-white/60">{selectedAlbum.artist?.name} • {currentAlbumSongs.length} שירים</p>
                                     </div>
+
+                                    {/* Delete Button (Only for Spotify Albums or User Playlists) */}
+                                    {(selectedAlbum.folder_path?.startsWith('spotify:') || selectedAlbum.isPlaylist) && (
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                const isPlaylist = selectedAlbum.isPlaylist;
+                                                const confirmMsg = isPlaylist
+                                                    ? `האם למחוק את הפלייליסט "${selectedAlbum.name}"?`
+                                                    : `האם למחוק את האלבום "${selectedAlbum.name}"?`;
+
+                                                if (window.confirm(confirmMsg)) {
+                                                    if (isPlaylist) {
+                                                        await deletePlaylist(selectedAlbum.id);
+                                                    } else {
+                                                        await removeSpotifyAlbum(selectedAlbum.folder_path.replace('spotify:album:', ''));
+                                                    }
+                                                    handleBack(); // Return to list after delete
+                                                }
+                                            }}
+                                            className="w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center transition-colors"
+                                            title="מחיקה"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
