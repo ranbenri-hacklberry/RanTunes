@@ -457,8 +457,47 @@ export const MusicProvider = ({ children }) => {
             )
             .subscribe();
 
+        // Also subscribe to RATINGS changes (from MiniMusicPlayer)
+        const ratingsChannel = supabase
+            .channel('music-ratings-sync')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'rantunes_ratings',
+                    filter: `user_id=eq.${currentUser.id}`
+                },
+                (payload) => {
+                    console.log('⭐ [RanTunes] Rating update received:', payload);
+                    const newRecord = payload.new;
+                    if (!newRecord) return; // Handle deletes if needed
+
+                    const { song_id, rating } = newRecord;
+
+                    // Update playlist state
+                    setPlaylist(prev => prev.map(s => String(s.id) === String(song_id) ? { ...s, myRating: rating } : s));
+
+                    // Update current song if it matches
+                    setCurrentSong(prev => {
+                        if (prev && String(prev.id) === String(song_id)) {
+                            // If currently playing song got disliked (rating 1), skip it!
+                            if (rating === 1) {
+                                console.log('⭐ [RanTunes] Current song disliked remotely, skipping...');
+                                // Use setTimeout to avoid state update collision
+                                setTimeout(() => handleNextRef.current?.(), 100);
+                            }
+                            return { ...prev, myRating: rating };
+                        }
+                        return prev;
+                    });
+                }
+            )
+            .subscribe();
+
         return () => {
             supabase.removeChannel(channel);
+            supabase.removeChannel(ratingsChannel);
         };
     }, [currentUser?.email]); // Only depends on email - stable connection
 
