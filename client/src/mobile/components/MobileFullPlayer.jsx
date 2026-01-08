@@ -4,6 +4,7 @@ import { useMusic } from '@/context/MusicContext';
 import VinylTurntable from '@/components/VinylTurntable';
 import SpotifyDevicePicker from '@/components/SpotifyDevicePicker';
 import { getSystemDirection, isSystemRTL } from '@/lib/localeUtils';
+import { ChevronDown } from 'lucide-react';
 
 // Sub-components
 import PlayerHeader from './PlayerHeader';
