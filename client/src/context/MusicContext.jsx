@@ -172,83 +172,76 @@ export const MusicProvider = ({ children }) => {
             return;
         }
 
-        // 🚨 REMOTE MODE OPTIMIZATION: Skip complex fading to ensure command reliability
-        if (isRemoteMode || (activeDeviceId && activeDeviceId !== sdk.deviceId)) {
-            // Just indicate buffering and execute immediately without volume tricks
-            // This restores the "snappy" control feeling when using the phone as a remote
-            setTransitionPhase('buffering');
-            await action();
-
-            // Small delay to let state catch up
-            await new Promise(r => setTimeout(r, 200));
-            setTransitionPhase('playing');
-            return;
-        }
-
         isManuallyTransitioningRef.current = true;
 
+        // Define remote check here to ensure consistent state capture
+        const isRemote = isRemoteMode || (activeDeviceId && activeDeviceId !== sdk.deviceId);
+
         try {
-            // 1. Fade Out & Slow Vinyl (Local/Web Player ONLY)
-            setTransitionPhase('fading_out');
-            const originalVolume = targetVolumeRef.current;
-            const fadeDuration = 800;
-            const steps = 10;
+            // 1. Fade Out (Only for Local/Web Player)
+            // Skip for remote to prevent lag/rate limiting
+            if (!isRemote) {
+                setTransitionPhase('fading_out');
+                const originalVolume = targetVolumeRef.current;
+                const fadeDuration = 800;
+                const steps = 10;
 
-            for (let i = steps; i >= 0; i--) {
-                const v = (i / steps) * originalVolume;
-
-                if (isRemoteMode || (activeDeviceId && activeDeviceId !== sdk.deviceId)) {
-                    // Remote Volume Control (Spotify API)
-                    const volPercent = Math.round(v * 100);
-                    // Fire and forget to not delay animation too much, heavily debounced by nature of loop
-                    SpotifyService.setVolume(volPercent, activeDeviceId).catch(() => { });
-                } else if (currentSong?.file_path?.startsWith('spotify:')) {
-                    if (sdk.isReady) await sdk.setVolume(v);
-                } else {
-                    setVolume(v);
+                for (let i = steps; i >= 0; i--) {
+                    const v = (i / steps) * originalVolume;
+                    if (currentSong?.file_path?.startsWith('spotify:')) {
+                        if (sdk.isReady) await sdk.setVolume(v);
+                    } else {
+                        setVolume(v);
+                    }
+                    await new Promise(r => setTimeout(r, fadeDuration / steps));
                 }
-
-                // Wait slightly longer in remote mode to let API process
-                await new Promise(r => setTimeout(r, fadeDuration / steps));
+            } else {
+                // Remote: Just quick buffer state
+                setTransitionPhase('buffering');
             }
 
             // 2. Buffer / Switch Song
-            setTransitionPhase('buffering');
+            if (!isRemote) setTransitionPhase('buffering'); // Already set for remote
+
+            // EXECUTE ACTION
             await action();
 
-            // Wait for load/buffer - slightly longer wait or check
-            // For local files, we could check readyState, but a safe delay works well for both
-            await new Promise(r => setTimeout(r, 600));
+            // Wait/Delay
+            const delay = isRemote ? 300 : 600; // Faster for remote
+            await new Promise(r => setTimeout(r, delay));
 
-            // 3. Fast Fade In (Restore) - Prevents "pop" noises
+            // 3. Fade In / Restore (Only for Local/Web Player)
             setTransitionPhase('playing');
+            const originalVolume = targetVolumeRef.current;
 
-            const restoreDuration = 400; // Fast restore (not a long fade in)
-            const restoreSteps = isRemoteMode ? 3 : 8;
+            if (!isRemote) {
+                const restoreDuration = 400;
+                const restoreSteps = 8;
 
-            for (let i = 1; i <= restoreSteps; i++) {
-                const v = (i / restoreSteps) * originalVolume;
-
-                if (isRemoteMode || (activeDeviceId && activeDeviceId !== sdk.deviceId)) {
-                    const volPercent = Math.round(v * 100);
-                    SpotifyService.setVolume(volPercent, activeDeviceId).catch(() => { });
-                } else if (sdk.isReady && (currentSong?.file_path?.startsWith('spotify:') || action.toString().includes('spotify'))) {
-                    // Check if new song is spotify too
-                    sdk.setVolume(v);
-                } else {
-                    setVolume(v);
+                for (let i = 1; i <= restoreSteps; i++) {
+                    const v = (i / restoreSteps) * originalVolume;
+                    if (sdk.isReady && (currentSong?.file_path?.startsWith('spotify:') || action.toString().includes('spotify'))) {
+                        try { sdk.setVolume(v); } catch (e) { }
+                    } else {
+                        setVolume(v);
+                    }
+                    await new Promise(r => setTimeout(r, restoreDuration / restoreSteps));
                 }
-                await new Promise(r => setTimeout(r, restoreDuration / restoreSteps));
             }
 
-            // Ensure final volume is exactly what it was
-            if (isRemoteMode || (activeDeviceId && activeDeviceId !== sdk.deviceId)) {
-                SpotifyService.setVolume(Math.round(originalVolume * 100), activeDeviceId).catch(() => { });
+            // Ensure volume is restored
+            if (isRemote) {
+                // For remote, we didn't touch volume, but just in case
             } else if (sdk.isReady) {
-                sdk.setVolume(originalVolume);
+                try { sdk.setVolume(originalVolume); } catch (e) { }
+                setVolume(originalVolume);
             }
-            setVolume(originalVolume);
 
+        } catch (err) {
+            console.error('Transition error:', err);
+            // Fallback: restore basic state
+            setTransitionPhase('playing');
+            setVolume(targetVolumeRef.current);
         } finally {
             isManuallyTransitioningRef.current = false;
         }
