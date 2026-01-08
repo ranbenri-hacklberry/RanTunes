@@ -176,12 +176,12 @@ const MobileFullPlayer = ({ onClose }) => {
             {/* Main Content Areas - Scrollable Container */}
             <div className="flex-1 w-full relative z-10 overflow-y-auto no-scrollbar scroll-smooth">
 
-                {/* Screen 1: Player Controls (Full Viewport Height) */}
-                <div className="min-h-[100dvh] flex flex-col pt-4 pb-24 px-4 relative">
+                {/* Screen 1: Player Controls (Height matches visible area exactly) */}
+                <div className="min-h-full flex flex-col pt-0 pb-2 px-4 relative">
 
-                    {/* 1. Vinyl - Top Centered */}
-                    <div className="flex-1 flex items-center justify-center min-h-[250px] mb-4">
-                        <div className="relative transform scale-100">
+                    {/* 1. Vinyl - Top Centered (Compact) */}
+                    <div className="flex-1 flex items-center justify-center min-h-[180px] max-h-[35vh] mb-0 shrink-1">
+                        <div className="relative transform scale-95 origin-center">
                             <VinylTurntable
                                 song={currentSong}
                                 isPlaying={isPlaying}
@@ -193,9 +193,9 @@ const MobileFullPlayer = ({ onClose }) => {
                     </div>
 
                     {/* 2. Controls Wrapper - Bottom Aligned */}
-                    <div className="w-full max-w-md mx-auto flex flex-col gap-4 mt-auto">
+                    <div className="w-full max-w-md mx-auto flex flex-col gap-2 mt-auto">
                         {/* Seek & Playback */}
-                        <div className="space-y-4">
+                        <div className="space-y-1">
                             <SeekControl
                                 currentTime={currentTime}
                                 duration={duration}
@@ -221,7 +221,7 @@ const MobileFullPlayer = ({ onClose }) => {
                         </div>
 
                         {/* Song Carousel - Essential Info */}
-                        <div className="relative z-20 min-h-[80px]">
+                        <div className="relative z-20 min-h-[80px] mt-1">
                             <SongInfoCarousel
                                 playlist={playlist}
                                 viewIndex={viewIndex}
@@ -235,8 +235,8 @@ const MobileFullPlayer = ({ onClose }) => {
                         </div>
 
                         {/* Drag Hint */}
-                        <div className="flex justify-center pt-2 opacity-50">
-                            <ChevronDown size={24} className="text-white animate-bounce" />
+                        <div className="flex justify-center pt-1 opacity-40">
+                            <ChevronDown size={20} className="text-white animate-bounce" />
                         </div>
                     </div>
                 </div>

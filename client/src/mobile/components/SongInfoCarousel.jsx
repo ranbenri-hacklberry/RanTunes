@@ -28,8 +28,9 @@ const SongInfoCarousel = ({
     onPlayPause,
     isPlaying
 }) => {
-    // If no playlist, just show current song static
-    if (!playlist || playlist.length === 0) return null; // Or fallback structure
+    // Ensure we have something to show
+    const displaySong = viewedSong || (playlist && playlist[0]);
+    if (!displaySong) return null;
 
     return (
         <div className="w-full max-w-[400px] mx-auto shrink-0 relative mb-4">
