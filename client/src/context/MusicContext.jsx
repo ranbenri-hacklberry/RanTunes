@@ -373,18 +373,19 @@ export const MusicProvider = ({ children }) => {
     }, [currentUser, currentSong?.id, isPlaying]);
 
     // 🎮 LISTEN FOR REMOTE COMMANDS FROM iCaffe MiniMusicPlayer
-    // TEMPORARILY DISABLED FOR DEBUGGING
-    /*
     const isPlayingRef = useRef(isPlaying);
-    const currentSongRef = useRef(currentSong);
     const sdkRef = useRef(sdk);
 
     useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
-    useEffect(() => { currentSongRef.current = currentSong; }, [currentSong]);
     useEffect(() => { sdkRef.current = sdk; }, [sdk]);
 
     useEffect(() => {
-        if (!currentUser?.email) return;
+        if (!currentUser?.email) {
+            console.log('🎮 [RanTunes] No user email, skipping remote commands subscription');
+            return;
+        }
+
+        console.log('🎮 [RanTunes] Setting up remote commands listener for:', currentUser.email);
 
         const channel = supabase
             .channel('music-remote-commands')
@@ -397,10 +398,14 @@ export const MusicProvider = ({ children }) => {
                     filter: `user_email=eq.${currentUser.email}`
                 },
                 async (payload) => {
+                    console.log('🎮 [RanTunes] Realtime payload received:', payload);
                     const cmd = payload.new;
-                    if (!cmd || cmd.processed_at) return;
+                    if (!cmd || cmd.processed_at) {
+                        console.log('🎮 [RanTunes] Command skipped (already processed or empty)');
+                        return;
+                    }
 
-                    console.log('🎮 Received remote command:', cmd.command);
+                    console.log('🎮 [RanTunes] Processing command:', cmd.command, 'from:', cmd.user_email);
 
                     // Use refs for current state
                     const playing = isPlayingRef.current;
@@ -456,7 +461,6 @@ export const MusicProvider = ({ children }) => {
             supabase.removeChannel(channel);
         };
     }, [currentUser?.email]); // Only depends on email - stable connection
-    */
 
     const playableSongs = useMemo(() =>
         playlist.filter(s => (s?.myRating || 0) !== 1),
