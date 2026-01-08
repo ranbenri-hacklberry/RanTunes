@@ -172,14 +172,27 @@ export const MusicProvider = ({ children }) => {
             return;
         }
 
+        // 🚨 REMOTE MODE OPTIMIZATION: Skip complex fading to ensure command reliability
+        if (isRemoteMode || (activeDeviceId && activeDeviceId !== sdk.deviceId)) {
+            // Just indicate buffering and execute immediately without volume tricks
+            // This restores the "snappy" control feeling when using the phone as a remote
+            setTransitionPhase('buffering');
+            await action();
+
+            // Small delay to let state catch up
+            await new Promise(r => setTimeout(r, 200));
+            setTransitionPhase('playing');
+            return;
+        }
+
         isManuallyTransitioningRef.current = true;
 
         try {
-            // 1. Fade Out & Slow Vinyl
+            // 1. Fade Out & Slow Vinyl (Local/Web Player ONLY)
             setTransitionPhase('fading_out');
             const originalVolume = targetVolumeRef.current;
-            const fadeDuration = 800; // Slightly faster default fade out
-            const steps = isRemoteMode ? 4 : 10; // Fewer steps for remote API to avoid rate limits
+            const fadeDuration = 800;
+            const steps = 10;
 
             for (let i = steps; i >= 0; i--) {
                 const v = (i / steps) * originalVolume;
