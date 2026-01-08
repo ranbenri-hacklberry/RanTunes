@@ -33,7 +33,7 @@ const PlayerSidebar = ({
         seek(Math.max(0, Math.min(1, percent)) * duration);
     };
     return (
-        <div className="w-[320px] shrink-0 border-l border-white/10 flex flex-col items-center p-6 bg-black/20 overflow-y-auto music-scrollbar">
+        <div className="w-[320px] shrink-0 border-l border-white/10 flex flex-col items-center p-6 pb-24 bg-black/20 overflow-y-auto music-scrollbar h-full">
             {currentSong ? (
                 <>
                     <VinylTurntable

@@ -172,59 +172,96 @@ const MobileFullPlayer = ({ onClose }) => {
                 )}
             </AnimatePresence>
 
-            {/* Main Content Areas */}
-            <div className="flex-1 flex flex-col w-full relative z-10 px-4 pb-4 overflow-hidden">
+            {/* Main Content Areas - Scrollable Container */}
+            <div className="flex-1 w-full relative z-10 overflow-y-auto no-scrollbar scroll-smooth">
 
-                {/* 1. Vinyl - Top Centered (Flexible space) */}
-                <div className="flex-1 flex items-center justify-center min-h-0 mb-4">
-                    <div className="relative" style={{ transform: 'scale(1)' }}>
-                        <VinylTurntable
-                            song={currentSong}
-                            isPlaying={isPlaying}
-                            albumArt={currentSong?.album?.cover_url}
-                            hideInfo={true}
-                            transitionPhase={transitionPhase}
+                {/* Screen 1: Player Controls (Min Height to fill viewport above navbar) */}
+                <div className="min-h-[calc(100vh-64px)] flex flex-col px-4 pb-4">
+
+                    {/* 1. Vinyl - Flexible space */}
+                    <div className="flex-1 flex items-center justify-center min-h-[300px] mb-4">
+                        <div className="relative" style={{ transform: 'scale(1)' }}>
+                            <VinylTurntable
+                                song={currentSong}
+                                isPlaying={isPlaying}
+                                albumArt={currentSong?.album?.cover_url}
+                                hideInfo={true}
+                                transitionPhase={transitionPhase}
+                            />
+                        </div>
+                    </div>
+
+                    {/* 2. Controls & Seek */}
+                    <div className="w-full max-w-[400px] mx-auto shrink-0 mb-4">
+                        <SeekControl
+                            currentTime={currentTime}
+                            duration={duration}
+                            scrubValue={scrubValue}
+                            isScrubbing={isScrubbing}
+                            onScrub={handleScrub}
+                            onScrubEnd={handleScrubEnd}
                         />
+
+                        <PlaybackControls
+                            isPlaying={isPlaying}
+                            onPlayPause={togglePlay}
+                            onNext={handleNext}
+                            onPrevious={handlePrevious}
+                            isShuffle={shuffle}
+                            onShuffleToggle={() => setShuffle(!shuffle)}
+                            repeatMode={repeat}
+                            onRepeatToggle={() => {
+                                const nextMode = repeat === 'off' ? 'context' : (repeat === 'context' ? 'track' : 'off');
+                                setRepeat(nextMode);
+                            }}
+                        />
+                    </div>
+
+                    {/* 3. Current Song Info (The Anchor for scrolling) */}
+                    <SongInfoCarousel
+                        playlist={playlist}
+                        viewIndex={viewIndex}
+                        viewedSong={viewedSong}
+                        isViewedSongPlaying={isViewedSongPlaying}
+                        onDragEnd={handleDragEnd}
+                        onLike={handleCarouselLike}
+                        onPlayPause={handleCarouselPlayPause}
+                        isPlaying={isPlaying}
+                    />
+
+                    {/* Scroll Hint */}
+                    <div className="flex justify-center -mt-2 opacity-50 animate-bounce">
+                        <ChevronDown size={20} className="text-white" />
                     </div>
                 </div>
 
-                {/* 2. Controls & Seek (Moved Up) */}
-                <div className="w-full max-w-[400px] mx-auto shrink-0 mb-4">
-                    <SeekControl
-                        currentTime={currentTime}
-                        duration={duration}
-                        scrubValue={scrubValue}
-                        isScrubbing={isScrubbing}
-                        onScrub={handleScrub}
-                        onScrubEnd={handleScrubEnd}
-                    />
+                {/* Create Space for Playlist below */}
+                <div className="px-4 pb-20 bg-black/40 backdrop-blur-md min-h-[50vh]">
+                    <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4 sticky top-0 py-4 bg-[#111] z-20">Up Next</h3>
 
-                    <PlaybackControls
-                        isPlaying={isPlaying}
-                        onPlayPause={togglePlay}
-                        onNext={handleNext}
-                        onPrevious={handlePrevious}
-                        isShuffle={shuffle}
-                        onShuffleToggle={() => setShuffle(!shuffle)}
-                        repeatMode={repeat}
-                        onRepeatToggle={() => {
-                            const nextMode = repeat === 'off' ? 'context' : (repeat === 'context' ? 'track' : 'off');
-                            setRepeat(nextMode);
-                        }}
-                    />
+                    <div className="space-y-2">
+                        {playlist && playlist.map((song, idx) => {
+                            // Only show songs AFTER current index (or all if repeat context?)
+                            // Let's show all for now, highlighting current
+                            const isCurrent = currentSong?.id === song.id;
+                            return (
+                                <div
+                                    key={song.id}
+                                    onClick={() => playSong(song)}
+                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all ${isCurrent ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5'}`}
+                                >
+                                    <span className="text-white/30 font-mono text-xs w-6 text-center">{idx + 1}</span>
+                                    <img src={song.album?.cover_url} className="w-10 h-10 rounded-md object-cover opacity-80" alt="" />
+                                    <div className="flex-1 min-w-0 flex flex-col">
+                                        <span className={`text-sm font-medium truncate ${isCurrent ? 'text-green-400' : 'text-white'}`}>{song.title}</span>
+                                        <span className="text-xs text-white/50 truncate">{song.artist?.name}</span>
+                                    </div>
+                                    {isCurrent && <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-
-                {/* 3. Song Info Carousel (Moved to Bottom above Navbar) */}
-                <SongInfoCarousel
-                    playlist={playlist}
-                    viewIndex={viewIndex}
-                    viewedSong={viewedSong}
-                    isViewedSongPlaying={isViewedSongPlaying}
-                    onDragEnd={handleDragEnd}
-                    onLike={handleCarouselLike}
-                    onPlayPause={handleCarouselPlayPause}
-                    isPlaying={isPlaying}
-                />
 
                 <AnimatePresence>
                     {showDevicePicker && (
