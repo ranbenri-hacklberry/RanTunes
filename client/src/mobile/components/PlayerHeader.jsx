@@ -24,7 +24,7 @@ const PlayerHeader = ({
     onDevicePickerClick
 }) => {
     return (
-        <div className="flex items-center justify-between p-4 pt-12 shrink-0 z-30 bg-gradient-to-b from-black/40 to-transparent">
+        <div className="flex items-center justify-between p-4 pt-4 shrink-0 z-30 bg-gradient-to-b from-black/40 to-transparent">
             <button
                 onClick={onClose}
                 className="p-2 -ml-2 text-white/80 hover:text-white transition-colors"

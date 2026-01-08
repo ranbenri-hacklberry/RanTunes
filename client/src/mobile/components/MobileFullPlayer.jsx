@@ -250,6 +250,7 @@ const MobileFullPlayer = ({ onClose }) => {
 
                     <div className="space-y-2">
                         {playlist && playlist.length > 0 ? playlist.map((song, idx) => {
+                            // ... map content ...
                             const isCurrent = currentSong?.id === song.id;
                             return (
                                 <div
@@ -267,7 +268,13 @@ const MobileFullPlayer = ({ onClose }) => {
                                 </div>
                             );
                         }) : (
-                            <div className="text-white/30 text-center py-8">אין שירים נוספים בתור</div>
+                            <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
+                                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
+                                    <span className="text-xl">🎵</span>
+                                </div>
+                                <p className="text-sm font-medium">Single Track Playing</p>
+                                <p className="text-xs mt-1">Select an album or playlist to see upcoming songs</p>
+                            </div>
                         )}
                     </div>
                 </div>
