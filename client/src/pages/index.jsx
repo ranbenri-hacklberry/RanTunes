@@ -607,50 +607,51 @@ const MusicPageContent = () => {
                                                 </div>
                                             </div>
                                         ) : (
-                                            filteredAlbums.map(album => (
-                                                <div key={album.id} className="relative group">
-                                                    <div
-                                                        onClick={() => handleAlbumClick(album)}
-                                                        className="music-glass rounded-xl overflow-hidden cursor-pointer aspect-square relative transition-all duration-300 hover:scale-105 shadow-lg border border-white/5"
-                                                    >
-                                                        {album.cover_url ? (
-                                                            <img src={album.cover_url} alt={album.name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center bg-white/5">
-                                                                <Disc className="w-12 h-12 text-white/20" />
-                                                            </div>
-                                                        )}
+                                            filteredAlbums.map(album => {
+                                                const handleLongPress = () => {
+                                                    if (album.folder_path?.startsWith('spotify:album:')) {
+                                                        if (window.confirm(`האם למחוק את האלבום "${album.name}"?`)) {
+                                                            removeSpotifyAlbum(album.folder_path.replace('spotify:album:', ''));
+                                                        }
+                                                    }
+                                                };
 
-                                                        {/* Overlay Info */}
-                                                        <div className="absolute inset-x-0 bottom-0 bg-black/70 backdrop-blur-md p-3 transform translate-y-1 group-hover:translate-y-0 transition-transform">
-                                                            <h3 className="text-white text-sm font-bold truncate leading-tight mb-1">{album.name}</h3>
-                                                            <p className="text-white/70 text-xs truncate leading-tight">{album.artist?.name}</p>
-                                                        </div>
-
-                                                        {/* Play Button Overlay (Flipped for RTL) */}
-                                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleAlbumPlay(album); }}
-                                                                className="w-10 h-10 rounded-full music-gradient-purple flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition-transform"
-                                                            >
-                                                                <Play className="w-5 h-5 text-white fill-white transform scale-x-[-1] ml-[-2px]" />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {editMode && album.folder_path?.startsWith('spotify:') && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (window.confirm(`האם למחוק את "${album.name}"?`)) removeSpotifyAlbum(album.folder_path.replace('spotify:album:', ''));
-                                                            }}
-                                                            className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg z-10 hover:bg-red-600 transition-colors"
+                                                return (
+                                                    <div key={album.id} className="relative group">
+                                                        <div
+                                                            onClick={() => handleAlbumClick(album)}
+                                                            onContextMenu={(e) => { e.preventDefault(); handleLongPress(); }}
+                                                            className="music-glass rounded-xl overflow-hidden cursor-pointer aspect-square relative transition-all duration-300 hover:scale-105 shadow-lg border border-white/5"
                                                         >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            ))
+                                                            {album.cover_url ? (
+                                                                <img src={album.cover_url} alt={album.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                                                    <Disc className="w-12 h-12 text-white/20" />
+                                                                </div>
+                                                            )}
+
+                                                            {/* Overlay Info */}
+                                                            <div className="absolute inset-x-0 bottom-0 bg-black/70 backdrop-blur-md p-3 transform translate-y-1 group-hover:translate-y-0 transition-transform">
+                                                                <h3 className="text-white text-sm font-bold truncate leading-tight mb-1">{album.name}</h3>
+                                                                <p className="text-white/70 text-xs truncate leading-tight">{album.artist?.name}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {editMode && album.folder_path?.startsWith('spotify:') && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (window.confirm(`האם למחוק את "${album.name}"?`)) removeSpotifyAlbum(album.folder_path.replace('spotify:album:', ''));
+                                                                }}
+                                                                className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg z-10 hover:bg-red-600 transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })
                                         )}
                                     </div>
                                 )}
@@ -694,6 +695,7 @@ const MusicPageContent = () => {
                                             <div key={playlist.id} className="relative group p-0 aspect-square">
                                                 <div
                                                     onClick={() => handlePlaylistClick(playlist)}
+                                                    onContextMenu={(e) => { e.preventDefault(); handleDeletePlaylist(e, playlist.id); }}
                                                     className="music-glass rounded-xl overflow-hidden cursor-pointer w-full h-full relative transition-all duration-300 hover:scale-105 shadow-lg"
                                                 >
                                                     {playlist.cover_url ? (
@@ -708,16 +710,6 @@ const MusicPageContent = () => {
                                                     <div className="absolute inset-x-0 bottom-0 bg-black/70 backdrop-blur-md p-3 transform translate-y-2 group-hover:translate-y-0 transition-transform">
                                                         <h3 className="text-white text-sm font-bold truncate leading-tight mb-1">{playlist.name}</h3>
                                                         <p className="text-white/70 text-xs truncate leading-tight">פלייליסט</p>
-                                                    </div>
-
-                                                    {/* Play Button Overlay */}
-                                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handlePlaylistPlay(playlist); }}
-                                                            className="w-10 h-10 rounded-full music-gradient-purple flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition-transform"
-                                                        >
-                                                            <Play className="w-5 h-5 text-white fill-white" />
-                                                        </button>
                                                     </div>
                                                 </div>
 
