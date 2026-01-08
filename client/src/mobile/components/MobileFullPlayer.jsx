@@ -176,12 +176,12 @@ const MobileFullPlayer = ({ onClose }) => {
             {/* Main Content Areas - Scrollable Container */}
             <div className="flex-1 w-full relative z-10 overflow-y-auto no-scrollbar scroll-smooth">
 
-                {/* Screen 1: Player Controls (Min Height to fill viewport above navbar) */}
-                <div className="min-h-[calc(100vh-64px)] flex flex-col px-4 pb-4">
+                {/* Screen 1: Player Controls (Compact Layout) */}
+                <div className="min-h-[calc(100vh-80px)] flex flex-col px-4 pb-2">
 
-                    {/* 1. Vinyl - Flexible space */}
-                    <div className="flex-1 flex items-center justify-center min-h-[300px] mb-4">
-                        <div className="relative" style={{ transform: 'scale(1)' }}>
+                    {/* 1. Vinyl - Flexible space but limited */}
+                    <div className="flex-1 flex items-center justify-center min-h-[220px] max-h-[40vh] my-2">
+                        <div className="relative transform scale-90 sm:scale-100">
                             <VinylTurntable
                                 song={currentSong}
                                 isPlaying={isPlaying}
@@ -192,8 +192,8 @@ const MobileFullPlayer = ({ onClose }) => {
                         </div>
                     </div>
 
-                    {/* 2. Controls & Seek */}
-                    <div className="w-full max-w-[400px] mx-auto shrink-0 mb-4">
+                    {/* 2. Controls & Seek - Compact wrapper */}
+                    <div className="w-full max-w-[400px] mx-auto shrink-0 space-y-2 mb-2">
                         <SeekControl
                             currentTime={currentTime}
                             duration={duration}
@@ -218,38 +218,38 @@ const MobileFullPlayer = ({ onClose }) => {
                         />
                     </div>
 
-                    {/* 3. Current Song Info (The Anchor for scrolling) */}
-                    <SongInfoCarousel
-                        playlist={playlist}
-                        viewIndex={viewIndex}
-                        viewedSong={viewedSong}
-                        isViewedSongPlaying={isViewedSongPlaying}
-                        onDragEnd={handleDragEnd}
-                        onLike={handleCarouselLike}
-                        onPlayPause={handleCarouselPlayPause}
-                        isPlaying={isPlaying}
-                    />
+                    {/* 3. Current Song Info (Visible Anchor) */}
+                    <div className="shrink-0 mb-1 z-30">
+                        <SongInfoCarousel
+                            playlist={playlist}
+                            viewIndex={viewIndex}
+                            viewedSong={viewedSong}
+                            isViewedSongPlaying={isViewedSongPlaying}
+                            onDragEnd={handleDragEnd}
+                            onLike={handleCarouselLike}
+                            onPlayPause={handleCarouselPlayPause}
+                            isPlaying={isPlaying}
+                        />
+                    </div>
 
                     {/* Scroll Hint */}
-                    <div className="flex justify-center -mt-2 opacity-50 animate-bounce">
-                        <ChevronDown size={20} className="text-white" />
+                    <div className="shrink-0 flex justify-center pb-2 opacity-50">
+                        <ChevronDown size={20} className="text-white animate-bounce" />
                     </div>
                 </div>
 
-                {/* Create Space for Playlist below */}
-                <div className="px-4 pb-20 bg-black/40 backdrop-blur-md min-h-[50vh]">
-                    <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4 sticky top-0 py-4 bg-[#111] z-20">Up Next</h3>
+                {/* Playlist Queue (Below the fold) */}
+                <div className="px-4 pb-24 bg-black/40 backdrop-blur-md min-h-[50vh]">
+                    <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4 sticky top-0 py-4 bg-[#111] z-20 shadow-lg -mx-2 px-2">Up Next</h3>
 
                     <div className="space-y-2">
                         {playlist && playlist.map((song, idx) => {
-                            // Only show songs AFTER current index (or all if repeat context?)
-                            // Let's show all for now, highlighting current
                             const isCurrent = currentSong?.id === song.id;
                             return (
                                 <div
                                     key={song.id}
                                     onClick={() => playSong(song)}
-                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all ${isCurrent ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5'}`}
+                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all ${isCurrent ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5 active:bg-white/10'}`}
                                 >
                                     <span className="text-white/30 font-mono text-xs w-6 text-center">{idx + 1}</span>
                                     <img src={song.album?.cover_url} className="w-10 h-10 rounded-md object-cover opacity-80" alt="" />

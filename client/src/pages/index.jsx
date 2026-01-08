@@ -442,7 +442,7 @@ const MusicPageContent = () => {
 
             <div className="music-split-layout flex-1 flex overflow-hidden">
                 {/* Turntable Side - moved up to make room for like/dislike */}
-                <div className="w-[380px] lg:w-[450px] shrink-0 order-last bg-black/20 border-r border-white/5 flex flex-col items-center pt-4 pb-6 px-6">
+                <div className="w-[380px] lg:w-[450px] shrink-0 order-last bg-black/20 border-r border-white/5 flex flex-col items-center pt-8 pb-24 px-6 h-full overflow-y-auto music-scrollbar">
                     <VinylTurntable
                         song={currentSong}
                         isPlaying={isPlaying}
@@ -570,12 +570,12 @@ const MusicPageContent = () => {
                     ) : (
                         <div className="flex-1 overflow-y-auto music-scrollbar">
                             <div className="p-4">
-                                <nav className="flex items-center gap-2 mb-4">
+                                <nav className="flex items-center gap-2 mb-4 sticky top-0 py-4 bg-[#111]/95 backdrop-blur-xl z-20 border-b border-white/5 -mx-4 px-4 shadow-2xl">
                                     {TABS.map(tab => (
                                         <button
                                             key={tab.id}
                                             onClick={() => setActiveTab(tab.id)}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${activeTab === tab.id ? 'music-gradient-purple text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${activeTab === tab.id ? 'music-gradient-purple text-white shadow-lg shadow-purple-500/20' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
                                         >
                                             <tab.icon className="w-4 h-4" />
                                             <span className="font-medium">{tab.label}</span>
