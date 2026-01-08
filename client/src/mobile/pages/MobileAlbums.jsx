@@ -139,6 +139,29 @@ const MobileAlbums = () => {
                             <h2 className="text-lg font-bold text-white truncate">{selectedAlbum.name}</h2>
                             <p className="text-white/50 text-sm truncate">{selectedAlbum.artist?.name}</p>
                         </div>
+
+                        {(selectedAlbum.folder_path?.startsWith('spotify:') || selectedAlbum.isPlaylist) && (
+                            <button
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const isPlaylist = selectedAlbum.isPlaylist;
+                                    const confirmMsg = rtl
+                                        ? (isPlaylist ? `למחוק את הפלייליסט "${selectedAlbum.name}"?` : `למחוק את האלבום "${selectedAlbum.name}"?`)
+                                        : (isPlaylist ? `Delete playlist "${selectedAlbum.name}"?` : `Delete album "${selectedAlbum.name}"?`);
+
+                                    if (window.confirm(confirmMsg)) {
+                                        // TODO: handle playlist deletion if we add playlist support here in mobile
+                                        if (!isPlaylist) {
+                                            await removeSpotifyAlbum(selectedAlbum.folder_path.replace('spotify:album:', ''));
+                                        }
+                                        handleBack();
+                                    }
+                                }}
+                                className="w-10 h-10 rounded-full bg-white/10 text-white/50 hover:text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                            </button>
+                        )}
                         <button
                             onClick={() => handleAlbumPlay(selectedAlbum)}
                             className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg"
