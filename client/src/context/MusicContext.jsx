@@ -165,6 +165,7 @@ export const MusicProvider = ({ children }) => {
     }, [syncSpotifyRemote]);
 
     // Perform smooth fade transition
+    // Perform smooth fade transition
     const performTransition = useCallback(async (action) => {
         if (!currentSong || !isPlaying) {
             await action();
@@ -177,16 +178,24 @@ export const MusicProvider = ({ children }) => {
             // 1. Fade Out & Slow Vinyl
             setTransitionPhase('fading_out');
             const originalVolume = targetVolumeRef.current;
-            const fadeDuration = 1000;
-            const steps = 10;
+            const fadeDuration = 800; // Slightly faster default fade out
+            const steps = isRemoteMode ? 4 : 10; // Fewer steps for remote API to avoid rate limits
 
             for (let i = steps; i >= 0; i--) {
                 const v = (i / steps) * originalVolume;
-                if (currentSong?.file_path?.startsWith('spotify:')) {
+
+                if (isRemoteMode || (activeDeviceId && activeDeviceId !== sdk.deviceId)) {
+                    // Remote Volume Control (Spotify API)
+                    const volPercent = Math.round(v * 100);
+                    // Fire and forget to not delay animation too much, heavily debounced by nature of loop
+                    SpotifyService.setVolume(volPercent, activeDeviceId).catch(() => { });
+                } else if (currentSong?.file_path?.startsWith('spotify:')) {
                     if (sdk.isReady) await sdk.setVolume(v);
                 } else {
                     setVolume(v);
                 }
+
+                // Wait slightly longer in remote mode to let API process
                 await new Promise(r => setTimeout(r, fadeDuration / steps));
             }
 
@@ -194,18 +203,43 @@ export const MusicProvider = ({ children }) => {
             setTransitionPhase('buffering');
             await action();
 
-            // Short natural delay (0.5s) for a seamless song-change feel
-            await new Promise(r => setTimeout(r, 500));
+            // Wait for load/buffer - slightly longer wait or check
+            // For local files, we could check readyState, but a safe delay works well for both
+            await new Promise(r => setTimeout(r, 600));
 
-            // 3. Set volume immediately and resume
-            // No fade-in as requested, just a clean start
+            // 3. Fast Fade In (Restore) - Prevents "pop" noises
             setTransitionPhase('playing');
-            if (sdk.isReady) sdk.setVolume(originalVolume);
+
+            const restoreDuration = 400; // Fast restore (not a long fade in)
+            const restoreSteps = isRemoteMode ? 3 : 8;
+
+            for (let i = 1; i <= restoreSteps; i++) {
+                const v = (i / restoreSteps) * originalVolume;
+
+                if (isRemoteMode || (activeDeviceId && activeDeviceId !== sdk.deviceId)) {
+                    const volPercent = Math.round(v * 100);
+                    SpotifyService.setVolume(volPercent, activeDeviceId).catch(() => { });
+                } else if (sdk.isReady && (currentSong?.file_path?.startsWith('spotify:') || action.toString().includes('spotify'))) {
+                    // Check if new song is spotify too
+                    sdk.setVolume(v);
+                } else {
+                    setVolume(v);
+                }
+                await new Promise(r => setTimeout(r, restoreDuration / restoreSteps));
+            }
+
+            // Ensure final volume is exactly what it was
+            if (isRemoteMode || (activeDeviceId && activeDeviceId !== sdk.deviceId)) {
+                SpotifyService.setVolume(Math.round(originalVolume * 100), activeDeviceId).catch(() => { });
+            } else if (sdk.isReady) {
+                sdk.setVolume(originalVolume);
+            }
             setVolume(originalVolume);
+
         } finally {
             isManuallyTransitioningRef.current = false;
         }
-    }, [currentSong, isPlaying, sdk, setVolume]);
+    }, [currentSong, isPlaying, sdk, setVolume, isRemoteMode, activeDeviceId]);
 
     // Sync state from Local Audio
     useEffect(() => {
