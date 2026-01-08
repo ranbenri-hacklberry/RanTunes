@@ -176,11 +176,11 @@ const MobileFullPlayer = ({ onClose }) => {
             {/* Main Content Areas - Scrollable Container */}
             <div className="flex-1 w-full relative z-10 overflow-y-auto no-scrollbar scroll-smooth">
 
-                {/* Screen 1: Player Controls (Height matches visible area exactly) */}
-                <div className="min-h-full flex flex-col pt-0 pb-2 px-4 relative">
+                {/* Screen 1: Player Controls (Fully layout) */}
+                <div className="min-h-full flex flex-col pt-4 pb-2 px-4 relative">
 
-                    {/* 1. Vinyl - Top Centered (Compact) */}
-                    <div className="flex-1 flex items-center justify-center min-h-[180px] max-h-[35vh] mb-0 shrink-1">
+                    {/* 1. Vinyl - Top Centered (Adjusted Spacing) */}
+                    <div className="flex-1 flex items-center justify-center min-h-[180px] max-h-[35vh] mb-6 shrink-1">
                         <div className="relative transform scale-95 origin-center">
                             <VinylTurntable
                                 song={currentSong}
@@ -192,10 +192,10 @@ const MobileFullPlayer = ({ onClose }) => {
                         </div>
                     </div>
 
-                    {/* 2. Controls Wrapper - Bottom Aligned */}
-                    <div className="w-full max-w-md mx-auto flex flex-col gap-2 mt-auto">
+                    {/* 2. Controls Wrapper */}
+                    <div className="w-full max-w-md mx-auto flex flex-col gap-5 mt-auto">
                         {/* Seek & Playback */}
-                        <div className="space-y-1">
+                        <div className="space-y-3">
                             <SeekControl
                                 currentTime={currentTime}
                                 duration={duration}
@@ -220,8 +220,8 @@ const MobileFullPlayer = ({ onClose }) => {
                             />
                         </div>
 
-                        {/* Song Carousel - Essential Info */}
-                        <div className="relative z-20 min-h-[80px] mt-1">
+                        {/* Song Carousel - Essential Info (Spaced from controls) */}
+                        <div className="relative z-20 min-h-[80px] mt-2">
                             <SongInfoCarousel
                                 playlist={playlist}
                                 viewIndex={viewIndex}
@@ -243,8 +243,9 @@ const MobileFullPlayer = ({ onClose }) => {
 
                 {/* Up Next List (Below Fold) */}
                 <div className="px-4 pb-32 bg-black/40 backdrop-blur-md min-h-[50vh]">
-                    <div className="sticky top-0 py-4 bg-[#111] z-30 shadow-xl border-b border-white/5 -mx-4 px-4 mb-4">
-                        <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest">Up Next</h3>
+                    <div className="sticky top-0 py-4 bg-[#0a0a12] z-30 shadow-xl border-b border-white/5 -mx-4 px-4 mb-4 flex justify-between items-center">
+                        <h3 className="text-white/80 text-xs font-bold uppercase tracking-widest">Up Next</h3>
+                        <span className="text-xs text-white/40">{playlist?.length || 0} songs</span>
                     </div>
 
                     <div className="space-y-2">

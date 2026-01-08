@@ -34,9 +34,7 @@ const SongInfoCarousel = ({
 
     return (
         <div className="w-full max-w-[400px] mx-auto shrink-0 relative mb-4">
-            {/* Visual cues for Swipe */}
-            <div className="absolute inset-y-0 -left-4 w-4 bg-gradient-to-r from-black/20 to-transparent z-20 pointer-events-none"></div>
-            <div className="absolute inset-y-0 -right-4 w-4 bg-gradient-to-l from-black/20 to-transparent z-20 pointer-events-none"></div>
+            {/* Visual cues removed as requested */}
 
             <div className="h-[80px] relative overflow-hidden">
                 <motion.div
