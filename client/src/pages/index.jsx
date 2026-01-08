@@ -344,7 +344,7 @@ const MusicPageContent = () => {
                         </div>
                         <div className="flex flex-col">
                             <h1 className="text-white text-lg font-bold leading-tight tracking-tight">RanTunes</h1>
-                            <span className="text-white/30 text-[9px] uppercase tracking-widest font-black">Pro Studio v1.4.1</span>
+                            <span className="text-white/30 text-[9px] uppercase tracking-widest font-black">Pro Studio v1.6.0</span>
                         </div>
                     </div>
 
