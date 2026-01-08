@@ -120,6 +120,11 @@ const MobileFullPlayer = ({ onClose }) => {
         rateSong(viewedSong.id, viewedSong.myRating === 5 ? 0 : 5);
     }, [rateSong, viewedSong]);
 
+    const handleCarouselDislike = useCallback((e) => {
+        e.stopPropagation();
+        rateSong(viewedSong.id, viewedSong.myRating === 1 ? 0 : 1);
+    }, [rateSong, viewedSong]);
+
 
     if (!currentSong) return (
         <div className="fixed inset-0 z-50 bg-[#1a1a2e] flex flex-col items-center justify-center p-12">
@@ -229,6 +234,7 @@ const MobileFullPlayer = ({ onClose }) => {
                                 isViewedSongPlaying={isViewedSongPlaying}
                                 onDragEnd={handleDragEnd}
                                 onLike={handleCarouselLike}
+                                onDislike={handleCarouselDislike}
                                 onPlayPause={handleCarouselPlayPause}
                                 isPlaying={isPlaying}
                             />

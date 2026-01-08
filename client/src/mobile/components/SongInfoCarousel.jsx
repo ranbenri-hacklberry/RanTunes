@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ThumbsUp, Play, Pause } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Play, Pause } from 'lucide-react';
 
 /**
  * @typedef {Object} SongInfoCarouselProps
@@ -25,6 +25,7 @@ const SongInfoCarousel = ({
     isViewedSongPlaying,
     onDragEnd,
     onLike,
+    onDislike,
     onPlayPause,
     isPlaying
 }) => {
@@ -77,6 +78,15 @@ const SongInfoCarousel = ({
                             aria-label={viewedSong?.myRating === 5 ? "Unlike song" : "Like song"}
                         >
                             <ThumbsUp size={20} fill={viewedSong?.myRating === 5 ? 'currentColor' : 'none'} />
+                        </button>
+
+                        {/* Dislike Heart */}
+                        <button
+                            onClick={onDislike}
+                            className={`p-2 rounded-full transition-colors hover:bg-white/10 ${viewedSong?.myRating === 1 ? 'text-red-500' : 'text-white/30'}`}
+                            aria-label={viewedSong?.myRating === 1 ? "Undislike song" : "Dislike song"}
+                        >
+                            <ThumbsDown size={20} fill={viewedSong?.myRating === 1 ? 'currentColor' : 'none'} />
                         </button>
 
                         {/* Mini Play Button Actions */}
