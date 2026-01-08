@@ -441,8 +441,8 @@ const MusicPageContent = () => {
             </header>
 
             <div className="music-split-layout flex-1 flex overflow-hidden">
-                {/* Turntable Side - moved up to make room for like/dislike */}
-                <div className="w-[380px] lg:w-[450px] shrink-0 order-last bg-black/20 border-r border-white/5 flex flex-col items-center pt-8 pb-24 px-6 h-full overflow-y-auto music-scrollbar">
+                {/* Turntable Side - Compact Fixed Layout */}
+                <div className="w-[340px] lg:w-[400px] shrink-0 order-last bg-black/20 border-r border-white/5 flex flex-col items-center py-4 px-4 h-full overflow-hidden justify-center relative">
                     <VinylTurntable
                         song={currentSong}
                         isPlaying={isPlaying}
@@ -452,13 +452,31 @@ const MusicPageContent = () => {
                     />
 
                     {currentSong && (
-                        <div className="w-full text-center mt-6" dir="rtl">
-                            <h2 className="text-2xl font-bold text-white truncate px-2 drop-shadow-md">
-                                {currentSong.title}
-                            </h2>
-                            <p className="text-white/60 text-sm mt-1 truncate px-4">
-                                {currentSong.artist?.name || 'אמן לא ידוע'}
-                            </p>
+                        <div className="w-full mt-4 flex items-center justify-between px-2 gap-2 shrink-0 z-10" dir="rtl">
+                            {/* Like Button */}
+                            <button
+                                onClick={() => rateSong(currentSong?.id, currentSong?.myRating === 5 ? 0 : 5)}
+                                className={`p-2 rounded-full transition-colors ${currentSong?.myRating === 5 ? 'text-green-500 bg-green-500/10' : 'text-white/30 hover:text-white'}`}
+                            >
+                                <ThumbsUp className="w-5 h-5" />
+                            </button>
+
+                            <div className="flex-1 min-w-0 text-center">
+                                <h2 className="text-xl font-bold text-white truncate leading-tight">
+                                    {currentSong.title}
+                                </h2>
+                                <p className="text-white/60 text-xs truncate">
+                                    {currentSong.artist?.name || 'Unknown'}
+                                </p>
+                            </div>
+
+                            {/* Dislike Button */}
+                            <button
+                                onClick={() => rateSong(currentSong?.id, currentSong?.myRating === 1 ? 0 : 1)}
+                                className={`p-2 rounded-full transition-colors ${currentSong?.myRating === 1 ? 'text-red-500 bg-red-500/10' : 'text-white/30 hover:text-white'}`}
+                            >
+                                <ThumbsDown className="w-5 h-5" />
+                            </button>
                         </div>
                     )}
 
@@ -498,29 +516,7 @@ const MusicPageContent = () => {
                                 </button>
                             </div>
 
-                            {/* Like/Dislike Buttons */}
-                            <div className="flex items-center gap-6 mt-4">
-                                <button
-                                    onClick={() => rateSong(currentSong?.id, currentSong?.myRating === 1 ? 0 : 1)}
-                                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all transform hover:scale-110
-                                        ${currentSong?.myRating === 1
-                                            ? 'bg-red-500/30 text-red-400 ring-2 ring-red-400/50'
-                                            : 'music-glass text-white/50 hover:text-red-400'}`}
-                                    title="לא אהבתי"
-                                >
-                                    <ThumbsDown className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={() => rateSong(currentSong?.id, currentSong?.myRating === 5 ? 0 : 5)}
-                                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all transform hover:scale-110
-                                        ${currentSong?.myRating === 5
-                                            ? 'bg-green-500/30 text-green-400 ring-2 ring-green-400/50'
-                                            : 'music-glass text-white/50 hover:text-green-400'}`}
-                                    title="אהבתי"
-                                >
-                                    <ThumbsUp className="w-5 h-5" />
-                                </button>
-                            </div>
+
                         </>
                     )}
 

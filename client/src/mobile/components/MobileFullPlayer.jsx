@@ -176,12 +176,12 @@ const MobileFullPlayer = ({ onClose }) => {
             {/* Main Content Areas - Scrollable Container */}
             <div className="flex-1 w-full relative z-10 overflow-y-auto no-scrollbar scroll-smooth">
 
-                {/* Screen 1: Player Controls (Compact Layout) */}
-                <div className="min-h-[calc(100vh-80px)] flex flex-col px-4 pb-2">
+                {/* Screen 1: Player Controls (Full Viewport Height) */}
+                <div className="min-h-[100dvh] flex flex-col pt-4 pb-24 px-4 relative">
 
-                    {/* 1. Vinyl - Flexible space but limited */}
-                    <div className="flex-1 flex items-center justify-center min-h-[220px] max-h-[40vh] my-2">
-                        <div className="relative transform scale-90 sm:scale-100">
+                    {/* 1. Vinyl - Top Centered */}
+                    <div className="flex-1 flex items-center justify-center min-h-[250px] mb-4">
+                        <div className="relative transform scale-100">
                             <VinylTurntable
                                 song={currentSong}
                                 isPlaying={isPlaying}
@@ -192,62 +192,67 @@ const MobileFullPlayer = ({ onClose }) => {
                         </div>
                     </div>
 
-                    {/* 2. Controls & Seek - Compact wrapper */}
-                    <div className="w-full max-w-[400px] mx-auto shrink-0 space-y-2 mb-2">
-                        <SeekControl
-                            currentTime={currentTime}
-                            duration={duration}
-                            scrubValue={scrubValue}
-                            isScrubbing={isScrubbing}
-                            onScrub={handleScrub}
-                            onScrubEnd={handleScrubEnd}
-                        />
+                    {/* 2. Controls Wrapper - Bottom Aligned */}
+                    <div className="w-full max-w-md mx-auto flex flex-col gap-4 mt-auto">
+                        {/* Seek & Playback */}
+                        <div className="space-y-4">
+                            <SeekControl
+                                currentTime={currentTime}
+                                duration={duration}
+                                scrubValue={scrubValue}
+                                isScrubbing={isScrubbing}
+                                onScrub={handleScrub}
+                                onScrubEnd={handleScrubEnd}
+                            />
 
-                        <PlaybackControls
-                            isPlaying={isPlaying}
-                            onPlayPause={togglePlay}
-                            onNext={handleNext}
-                            onPrevious={handlePrevious}
-                            isShuffle={shuffle}
-                            onShuffleToggle={() => setShuffle(!shuffle)}
-                            repeatMode={repeat}
-                            onRepeatToggle={() => {
-                                const nextMode = repeat === 'off' ? 'context' : (repeat === 'context' ? 'track' : 'off');
-                                setRepeat(nextMode);
-                            }}
-                        />
-                    </div>
+                            <PlaybackControls
+                                isPlaying={isPlaying}
+                                onPlayPause={togglePlay}
+                                onNext={handleNext}
+                                onPrevious={handlePrevious}
+                                isShuffle={shuffle}
+                                onShuffleToggle={() => setShuffle(!shuffle)}
+                                repeatMode={repeat}
+                                onRepeatToggle={() => {
+                                    const nextMode = repeat === 'off' ? 'context' : (repeat === 'context' ? 'track' : 'off');
+                                    setRepeat(nextMode);
+                                }}
+                            />
+                        </div>
 
-                    {/* 3. Current Song Info (Visible Anchor) */}
-                    <div className="shrink-0 mb-1 z-30">
-                        <SongInfoCarousel
-                            playlist={playlist}
-                            viewIndex={viewIndex}
-                            viewedSong={viewedSong}
-                            isViewedSongPlaying={isViewedSongPlaying}
-                            onDragEnd={handleDragEnd}
-                            onLike={handleCarouselLike}
-                            onPlayPause={handleCarouselPlayPause}
-                            isPlaying={isPlaying}
-                        />
-                    </div>
+                        {/* Song Carousel - Essential Info */}
+                        <div className="relative z-20 min-h-[80px]">
+                            <SongInfoCarousel
+                                playlist={playlist}
+                                viewIndex={viewIndex}
+                                viewedSong={viewedSong}
+                                isViewedSongPlaying={isViewedSongPlaying}
+                                onDragEnd={handleDragEnd}
+                                onLike={handleCarouselLike}
+                                onPlayPause={handleCarouselPlayPause}
+                                isPlaying={isPlaying}
+                            />
+                        </div>
 
-                    {/* Scroll Hint */}
-                    <div className="shrink-0 flex justify-center pb-2 opacity-50">
-                        <ChevronDown size={20} className="text-white animate-bounce" />
+                        {/* Drag Hint */}
+                        <div className="flex justify-center pt-2 opacity-50">
+                            <ChevronDown size={24} className="text-white animate-bounce" />
+                        </div>
                     </div>
                 </div>
 
-                {/* Playlist Queue (Below the fold) */}
-                <div className="px-4 pb-24 bg-black/40 backdrop-blur-md min-h-[50vh]">
-                    <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4 sticky top-0 py-4 bg-[#111] z-20 shadow-lg -mx-2 px-2">Up Next</h3>
+                {/* Up Next List (Below Fold) */}
+                <div className="px-4 pb-32 bg-black/40 backdrop-blur-md min-h-[50vh]">
+                    <div className="sticky top-0 py-4 bg-[#111] z-30 shadow-xl border-b border-white/5 -mx-4 px-4 mb-4">
+                        <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest">Up Next</h3>
+                    </div>
 
                     <div className="space-y-2">
-                        {playlist && playlist.map((song, idx) => {
+                        {playlist && playlist.length > 0 ? playlist.map((song, idx) => {
                             const isCurrent = currentSong?.id === song.id;
                             return (
                                 <div
-                                    key={song.id}
+                                    key={song.id || idx}
                                     onClick={() => playSong(song)}
                                     className={`flex items-center gap-3 p-3 rounded-xl transition-all ${isCurrent ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5 active:bg-white/10'}`}
                                 >
@@ -260,7 +265,9 @@ const MobileFullPlayer = ({ onClose }) => {
                                     {isCurrent && <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>}
                                 </div>
                             );
-                        })}
+                        }) : (
+                            <div className="text-white/30 text-center py-8">אין שירים נוספים בתור</div>
+                        )}
                     </div>
                 </div>
 
