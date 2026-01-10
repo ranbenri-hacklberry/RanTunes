@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Music, Disc, ListMusic, Search, Upload, RefreshCw,
@@ -16,10 +16,10 @@ import SongRow from '@/components/SongRow';
 import MiniMusicPlayer from '@/components/MiniMusicPlayer';
 import MusicPlayer from '@/components/MusicPlayer';
 import SpotifyDevicePicker from '@/components/SpotifyDevicePicker';
-import PlaylistBuilder from './components/PlaylistBuilder';
-import DirectoryScanner from './components/DirectoryScanner';
-import SpotifyAlbumSearch from './components/SpotifyAlbumSearch';
-import SpotifyPlaylistSearch from './components/SpotifyPlaylistSearch';
+import PlaylistBuilder from '@/components/PlaylistBuilder';
+import DirectoryScanner from '@/components/DirectoryScanner';
+import SpotifyAlbumSearch from '@/components/SpotifyAlbumSearch';
+import SpotifyPlaylistSearch from '@/components/SpotifyPlaylistSearch';
 import SpotifyService from '@/lib/spotifyService';
 import { supabase } from '@/lib/supabase';
 import '@/styles/music.css';
@@ -35,6 +35,13 @@ const TABS = [
 const MusicPageContent = () => {
     const navigate = useNavigate();
     const { user: currentUser } = useRanTunesAuth();
+
+    // Protection: Redirect to auth if no user is logged in
+    useEffect(() => {
+        if (!currentUser) {
+            navigate('/auth');
+        }
+    }, [currentUser, navigate]);
 
     const {
         albums,
@@ -94,9 +101,9 @@ const MusicPageContent = () => {
 
     const songListRef = useRef(null);
 
-    // Format time (seconds to MM:SS)
+    // Format time (seconds to MM:SS) - Improved safety
     const formatTime = (seconds) => {
-        if (!seconds || isNaN(seconds)) return '0:00';
+        if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -105,8 +112,9 @@ const MusicPageContent = () => {
     // Progress percentage
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-    // Handle seek (RTL support)
+    // Handle seek (RTL support) - Improved safety
     const handleSeek = (e) => {
+        if (!duration || duration <= 0) return;
         const rect = e.currentTarget.getBoundingClientRect();
         // Calculate percent from right to left for RTL
         const percent = (rect.right - e.clientX) / rect.width;
@@ -158,32 +166,34 @@ const MusicPageContent = () => {
         }
     };
 
-    const filteredAlbums = albums.filter(album =>
+    const filteredAlbums = useMemo(() => albums.filter(album =>
         album.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         album.artist?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ), [albums, searchQuery]);
 
-    const filteredArtists = artists.filter(artist =>
+    const filteredArtists = useMemo(() => artists.filter(artist =>
         artist.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ), [artists, searchQuery]);
 
-    const filteredPlaylists = playlists.filter(playlist =>
+    const filteredPlaylists = useMemo(() => playlists.filter(playlist =>
         playlist.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ), [playlists, searchQuery]);
 
     useEffect(() => {
+        let isMounted = true;
         const loadSongs = async () => {
             if (selectedAlbum?.id) {
-                if (selectedAlbum.isPlaylist) {
-                    const songs = await fetchPlaylistSongs(selectedAlbum.id);
-                    setCurrentAlbumSongs(songs);
-                } else {
-                    const songs = await fetchAlbumSongs(selectedAlbum.id);
-                    setCurrentAlbumSongs(songs);
+                const songs = selectedAlbum.isPlaylist
+                    ? await fetchPlaylistSongs(selectedAlbum.id)
+                    : await fetchAlbumSongs(selectedAlbum.id);
+
+                if (isMounted) {
+                    setCurrentAlbumSongs(songs || []);
                 }
             }
         };
         loadSongs();
+        return () => { isMounted = false; };
     }, [selectedAlbum, fetchAlbumSongs, fetchPlaylistSongs]);
 
     const handleAlbumClick = async (album) => {
@@ -277,9 +287,13 @@ const MusicPageContent = () => {
     };
 
     useEffect(() => {
+        let isMounted = true;
         if (activeTab === 'favorites') {
-            fetchFavoritesSongs().then(songs => setFavoriteSongs(songs || []));
+            fetchFavoritesSongs().then(songs => {
+                if (isMounted) setFavoriteSongs(songs || []);
+            });
         }
+        return () => { isMounted = false; };
     }, [activeTab, fetchFavoritesSongs]);
 
     const handleMiniPlayerClick = async () => {
