@@ -34,14 +34,14 @@ const TABS = [
 
 const MusicPageContent = () => {
     const navigate = useNavigate();
-    const { user: currentUser } = useRanTunesAuth();
+    const { user: currentUser, isLoading: authLoading } = useRanTunesAuth();
 
     // Protection: Redirect to auth if no user is logged in
     useEffect(() => {
-        if (!currentUser) {
+        if (!authLoading && !currentUser) {
             navigate('/auth');
         }
-    }, [currentUser, navigate]);
+    }, [currentUser, authLoading, navigate]);
 
     const {
         albums,

@@ -109,7 +109,7 @@ export const MusicProvider = ({ children }) => {
                         setDuration(state.item.duration_ms / 1000);
 
                         const spotifyUri = state.item.uri;
-                        const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 1500;
+                        const recentlyManualLoaded = Date.now() - lastLoadTimeRef.current < 3000;
 
                         if (spotifyUri && currentSongRef.current?.file_path !== spotifyUri) {
                             // High-Fidelity Sync:
