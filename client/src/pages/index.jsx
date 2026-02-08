@@ -34,7 +34,7 @@ const TABS = [
 
 const MusicPageContent = () => {
     const navigate = useNavigate();
-    const { user: currentUser, isLoading: authLoading } = useRanTunesAuth();
+    const { user: currentUser, isLoading: authLoading, logout: authLogout } = useRanTunesAuth();
 
     // Protection: Redirect to auth if no user is logged in
     useEffect(() => {
@@ -366,18 +366,33 @@ const MusicPageContent = () => {
                     <div className="lg:hidden flex items-center gap-2">
                         {musicSource === 'spotify' && isSpotifyConnected && (
                             <button
-                                onClick={() => setShowDevicePicker(true)}
-                                className="flex items-center gap-1.5 bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20 active:scale-95 transition-all"
+                                onClick={() => {
+                                    if (window.confirm('להתנתק מ-Spotify?')) {
+                                        SpotifyService.logout();
+                                        setIsSpotifyConnected(false);
+                                        setMusicSource(null);
+                                        localStorage.removeItem('music_source');
+                                        window.location.reload();
+                                    }
+                                }}
+                                className="flex items-center gap-1.5 bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20 active:scale-95 transition-all text-red-400"
                             >
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                                <span className="text-[10px] font-bold text-green-400 uppercase tracking-wider">Connect</span>
+                                <X className="w-4 h-4" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Disconnect</span>
                             </button>
                         )}
                         <button
-                            onClick={() => setEditMode(!editMode)}
-                            className={`p-2.5 rounded-xl transition-all active:scale-95 ${editMode ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/5 border border-white/10 text-white/40'}`}
+                            onClick={async () => {
+                                if (window.confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                                    SpotifyService.logout();
+                                    authLogout();
+                                    localStorage.removeItem('music_source');
+                                    window.location.reload();
+                                }
+                            }}
+                            className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/40 active:scale-95"
                         >
-                            <Settings className="w-5 h-5" />
+                            <LogOut className="w-5 h-5" />
                         </button>
                     </div>
 
@@ -442,6 +457,7 @@ const MusicPageContent = () => {
                         onClick={async () => {
                             if (window.confirm('האם אתה בטוח שברצונך להתנתק?')) {
                                 SpotifyService.logout();
+                                authLogout();
                                 localStorage.removeItem('music_source');
                                 window.location.reload();
                             }

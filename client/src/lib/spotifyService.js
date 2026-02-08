@@ -73,6 +73,7 @@ export async function loginWithSpotify() {
         scope: SPOTIFY_SCOPES,
         code_challenge_method: 'S256',
         code_challenge: codeChallenge,
+        show_dialog: 'true'
     });
 
     window.location.href = `${SPOTIFY_AUTH_URL}?${params.toString()}`;
