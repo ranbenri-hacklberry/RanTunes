@@ -43,7 +43,7 @@ const MobileFullPlayer = ({ onClose }) => {
 
     const [isScrubbing, setIsScrubbing] = useState(false);
     const [scrubValue, setScrubValue] = useState(0);
-    const [showDevicePicker, setShowDevicePicker] = useState(false);
+    const [isFlipped, setIsFlipped] = useState(false);
     const [error, setError] = useState(null);
 
     // Carousel State
@@ -184,21 +184,78 @@ const MobileFullPlayer = ({ onClose }) => {
                 {/* Screen 1: Player Controls (Fully layout) */}
                 <div className="min-h-full flex flex-col pt-4 pb-2 px-4 relative">
 
-                    {/* 1. Vinyl - Top Centered (Adjusted Spacing) */}
-                    <div className="flex-1 flex items-center justify-center min-h-[180px] max-h-[35vh] mb-6 shrink-1">
-                        <div className="relative transform scale-95 origin-center">
-                            <VinylTurntable
-                                song={currentSong}
-                                isPlaying={isPlaying}
-                                albumArt={currentSong?.album?.cover_url}
-                                hideInfo={true}
-                                transitionPhase={transitionPhase}
-                            />
-                        </div>
+                    {/* 1. Vinyl/Queue Flip Card (Occupies main visual area) */}
+                    <div
+                        className="flex-1 flex items-center justify-center min-h-[180px] max-h-[45vh] mb-6 shrink-1 [perspective:1000px] cursor-pointer"
+                        onClick={() => setIsFlipped(!isFlipped)}
+                    >
+                        <motion.div
+                            className="w-full h-full relative [transform-style:preserve-3d]"
+                            animate={{ rotateY: isFlipped ? 180 : 0 }}
+                            transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
+                        >
+                            {/* FRONT: Vinyl Turntable */}
+                            <div className="absolute inset-0 [backface-visibility:hidden] flex items-center justify-center">
+                                <div className="transform scale-90 sm:scale-100 origin-center pointer-events-auto">
+                                    <VinylTurntable
+                                        song={currentSong}
+                                        isPlaying={isPlaying}
+                                        albumArt={currentSong?.album?.cover_url}
+                                        hideInfo={true}
+                                        transitionPhase={transitionPhase}
+                                        onTogglePlay={(e) => {
+                                            if (e && e.stopPropagation) e.stopPropagation();
+                                            togglePlay();
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* BACK: Queue (Up Next) */}
+                            <div
+                                className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-black/40 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden flex flex-col pointer-events-auto"
+                            >
+                                <div className="p-4 bg-[#0a0a12] border-b border-white/5 flex justify-between items-center shadow-lg">
+                                    <h3 className="text-white/80 text-xs font-bold uppercase tracking-widest">Up Next</h3>
+                                    <span className="text-xs text-white/40">{playlist?.length || 0} songs</span>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1">
+                                    {playlist && playlist.length > 0 ? playlist.map((song, idx) => {
+                                        const isCurrent = currentSong?.id === song.id;
+                                        return (
+                                            <div
+                                                key={song.id || idx}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    playSong(song);
+                                                }}
+                                                className={`flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-white/5 active:bg-white/10 ${isCurrent ? 'bg-white/10 border border-white/20' : ''}`}
+                                            >
+                                                <span className="text-white/30 font-mono text-[10px] w-4 text-center">{idx + 1}</span>
+                                                <img src={song.album?.cover_url} className="w-8 h-8 rounded-md object-cover opacity-80" alt="" />
+                                                <div className="flex-1 min-w-0 flex flex-col items-start" dir="rtl">
+                                                    <span className={`text-[13px] font-medium truncate w-full ${isCurrent ? 'text-green-400' : 'text-white'}`}>{song.title}</span>
+                                                    <span className="text-[10px] text-white/50 truncate w-full">{song.artist?.name}</span>
+                                                </div>
+                                                {isCurrent && <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] shrink-0 mr-1"></div>}
+                                            </div>
+                                        );
+                                    }) : (
+                                        <div className="flex flex-col items-center justify-center h-full text-center opacity-40 p-4">
+                                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-2">
+                                                <span className="text-lg">🎵</span>
+                                            </div>
+                                            <p className="text-xs font-medium">Single Track Playing</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
 
                     {/* 2. Controls Wrapper */}
-                    <div className="w-full max-w-md mx-auto flex flex-col gap-5 mt-auto">
+                    <div className="w-full max-w-md mx-auto flex flex-col gap-5 mt-auto z-10">
                         {/* Seek & Playback */}
                         <div className="space-y-3">
                             <SeekControl
@@ -247,49 +304,6 @@ const MobileFullPlayer = ({ onClose }) => {
                     </div>
                 </div>
 
-                {/* Up Next List (Below Fold) */}
-                <div className="px-4 pb-32 bg-black/40 backdrop-blur-md min-h-[50vh]">
-                    <div className="sticky top-0 py-4 bg-[#0a0a12] z-30 shadow-xl border-b border-white/5 -mx-4 px-4 mb-4 flex justify-between items-center">
-                        <h3 className="text-white/80 text-xs font-bold uppercase tracking-widest">Up Next</h3>
-                        <span className="text-xs text-white/40">{playlist?.length || 0} songs</span>
-                    </div>
-
-                    <div className="space-y-2">
-                        {playlist && playlist.length > 0 ? playlist.map((song, idx) => {
-                            // ... map content ...
-                            const isCurrent = currentSong?.id === song.id;
-                            return (
-                                <div
-                                    key={song.id || idx}
-                                    onClick={() => playSong(song)}
-                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all ${isCurrent ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5 active:bg-white/10'}`}
-                                >
-                                    <span className="text-white/30 font-mono text-xs w-6 text-center">{idx + 1}</span>
-                                    <img src={song.album?.cover_url} className="w-10 h-10 rounded-md object-cover opacity-80" alt="" />
-                                    <div className="flex-1 min-w-0 flex flex-col">
-                                        <span className={`text-sm font-medium truncate ${isCurrent ? 'text-green-400' : 'text-white'}`}>{song.title}</span>
-                                        <span className="text-xs text-white/50 truncate">{song.artist?.name}</span>
-                                    </div>
-                                    {isCurrent && <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>}
-                                </div>
-                            );
-                        }) : (
-                            <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
-                                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
-                                    <span className="text-xl">🎵</span>
-                                </div>
-                                <p className="text-sm font-medium">Single Track Playing</p>
-                                <p className="text-xs mt-1">Select an album or playlist to see upcoming songs</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <AnimatePresence>
-                    {showDevicePicker && (
-                        <SpotifyDevicePicker onClose={() => setShowDevicePicker(false)} />
-                    )}
-                </AnimatePresence>
             </div>
         </motion.div>
     );

@@ -1,119 +1,61 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Music } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
-const MUSIC_API_URL = import.meta.env.VITE_MUSIC_API_URL ||
-    import.meta.env.VITE_MANAGER_API_URL?.replace(/\/$/, '') ||
-    'http://localhost:8080';
-
-const getCoverUrl = (localPath) => {
-    if (!localPath) return null;
-    if (localPath.startsWith('http')) return localPath;
-    return `${MUSIC_API_URL}/music/cover?path=${encodeURIComponent(localPath)}`;
-};
+const MUSIC_API_URL = import.meta.env.VITE_MUSIC_API_URL || 'https://api-icaffe.hacklberryfinn.com';
 
 /**
- * Premium Vinyl Turntable with orchestrated transitions
- * @param {Object} props
- * @param {Object} props.song - Current song object
- * @param {boolean} props.isPlaying - Global playing state
- * @param {string} props.albumArt - URL or local path to album art
- * @param {string} props.transitionPhase - 'playing' | 'fading_out' | 'buffering' | 'starting' | 'stopped'
+ * Vinyl Turntable Component (RanTunes Professional Edition)
+ * Restored to original design with wood base, tonearm, and platter.
+ * Uses CSS classes from src/styles/music.css
  */
-const VinylTurntable = ({ song, isPlaying, albumArt, transitionPhase = 'playing', hideInfo = false }) => {
-    const coverUrl = useMemo(() => getCoverUrl(albumArt), [albumArt]);
+const VinylTurntable = ({ song, isPlaying, albumArt, onTogglePlay, queue = [] }) => {
+    // If no song is actively playing, show the first song in queue as preview
+    const displaySong = song || (queue.length > 0 ? queue[0] : null);
 
-    // Physics-based rotation state for high realism
-    const [rotation, setRotation] = useState(0);
-    const rotationRef = useRef(0);
-    const lastTimeRef = useRef(0);
-    const currentRpmRef = useRef(0);
-    const targetRpmRef = useRef(0);
+    // Determine cover URL with robust fallback
+    const resolveCover = () => {
+        // Preference: 1. Passed albumArt prop, 2. Song fields
+        const possibleCover = albumArt || (displaySong?.album?.cover_url || displaySong?.cover_url || displaySong?.thumbnail_url);
 
-    // Sync target RPM with playback phase
-    useEffect(() => {
-        if (transitionPhase === 'stopped' || transitionPhase === 'buffering') {
-            targetRpmRef.current = 0;
-        } else if (transitionPhase === 'fading_out') {
-            targetRpmRef.current = 10; // Slowing down to 'manual' speed
-        } else if (isPlaying || transitionPhase === 'playing' || transitionPhase === 'starting') {
-            targetRpmRef.current = 34; // Authentic 34 RPM as requested
-        } else {
-            targetRpmRef.current = 0;
+        if (!possibleCover) return null;
+
+        // If it's a local file path (not http), it needs to go through the cover proxy
+        if (!possibleCover.startsWith('http') && !possibleCover.startsWith('blob:')) {
+            // Pass the full path to the cover endpoint — it handles path resolution
+            return `${MUSIC_API_URL}/music/cover?path=${encodeURIComponent(possibleCover)}`;
         }
-    }, [isPlaying, transitionPhase]);
+        return possibleCover;
+    };
 
-    // Animation frame loop for smooth speed transitions (Torque Simulation)
-    useEffect(() => {
-        let frameId;
-        const animate = (time) => {
-            if (!lastTimeRef.current) lastTimeRef.current = time;
-            const delta = (time - lastTimeRef.current) / 1000;
-            lastTimeRef.current = time;
-
-            // Apply 'torque' (lerp speed)
-            const acceleration = targetRpmRef.current > currentRpmRef.current ? 0.04 : 0.02;
-            currentRpmRef.current += (targetRpmRef.current - currentRpmRef.current) * acceleration;
-
-            // Update cumulative rotation
-            if (currentRpmRef.current > 0.1) {
-                rotationRef.current += (currentRpmRef.current * 6) * delta; // 360deg / 60sec = 6deg/sec per RPM
-                setRotation(rotationRef.current % 360);
-            }
-
-            frameId = requestAnimationFrame(animate);
-        };
-        frameId = requestAnimationFrame(animate);
-        return () => cancelAnimationFrame(frameId);
-    }, []);
-
-    const isEffectivelyRotating = currentRpmRef.current > 0.5;
-
-    const armPosition = useMemo(() => {
-        if (transitionPhase === 'buffering' || transitionPhase === 'stopped') return 0; // At rest
-        if (transitionPhase === 'fading_out') return 12; // Moving back
-        if (transitionPhase === 'starting') return 20; // Landing
-        if (isPlaying || transitionPhase === 'playing') return 28; // Playing
-        return 0;
-    }, [isPlaying, transitionPhase]);
+    const coverUrl = resolveCover();
 
     return (
-        <div className="vinyl-container" dir="ltr">
+        <div
+            className="vinyl-container cursor-pointer active:scale-95 transition-transform"
+            dir="ltr"
+            onClick={() => onTogglePlay && onTogglePlay(!isPlaying)}
+        >
+            {/* Turntable base - wood texture (defined in music.css) */}
             <div className="vinyl-base">
                 {/* Platter */}
                 <div className="vinyl-platter-ring">
-                    {/* Vinyl disc - Using manual rotation for physics smoothing */}
-                    <div
-                        className="vinyl-disc"
-                        style={{
-                            transform: `rotate(${rotation}deg)`
-                        }}
-                    >
+                    {/* Vinyl record */}
+                    <div className={`vinyl-disc ${isPlaying && song ? 'vinyl-spinning' : ''}`}>
                         {/* Grooves */}
-                        {[90, 75, 60, 50].map(size => (
-                            <div key={size} className="vinyl-groove" style={{ width: `${size}%`, height: `${size}%` }}></div>
-                        ))}
+                        <div className="vinyl-groove" style={{ width: '90%', height: '90%', opacity: 0.1 }}></div>
+                        <div className="vinyl-groove" style={{ width: '75%', height: '75%', opacity: 0.1 }}></div>
+                        <div className="vinyl-groove" style={{ width: '60%', height: '60%', opacity: 0.1 }}></div>
+                        <div className="vinyl-groove" style={{ width: '50%', height: '50%', opacity: 0.1 }}></div>
 
-                        {/* Center label with Animated Presence for cover change */}
+                        {/* Center label */}
                         <div className="vinyl-center-label">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={coverUrl || 'no-art'}
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 1.1 }}
-                                    transition={{ duration: 0.4 }}
-                                    className="w-full h-full"
-                                >
-                                    {coverUrl ? (
-                                        <img src={coverUrl} alt="Album" className="vinyl-album-art" />
-                                    ) : (
-                                        <div className="vinyl-no-art">
-                                            <Music className="w-6 h-6 text-white/50" />
-                                        </div>
-                                    )}
-                                </motion.div>
-                            </AnimatePresence>
+                            {coverUrl ? (
+                                <img src={coverUrl} alt="Album Art" className="vinyl-album-art" />
+                            ) : (
+                                <div className="vinyl-no-art">
+                                    <Music className="w-8 h-8 text-white/50" />
+                                </div>
+                            )}
                             <div className="vinyl-spindle-hole"></div>
                         </div>
 
@@ -122,45 +64,30 @@ const VinylTurntable = ({ song, isPlaying, albumArt, transitionPhase = 'playing'
                     </div>
                 </div>
 
-                {/* Tonearm with smooth motion */}
-                <motion.div
-                    className="vinyl-arm"
-                    animate={{ rotate: armPosition }}
-                    transition={{
-                        type: "spring",
-                        stiffness: 40,
-                        damping: 12,
-                        mass: 1.5
-                    }}
-                >
+                {/* Tonearm - Rotates when isPlaying is true */}
+                <div className={`vinyl-arm ${isPlaying && song ? 'vinyl-arm-playing' : ''}`}>
                     <div className="vinyl-arm-pivot"></div>
                     <div className="vinyl-arm-stick">
                         <div className="vinyl-arm-head"></div>
                     </div>
-                </motion.div>
+                </div>
 
+                {/* Armrest - where tonearm rests when not playing */}
                 <div className="vinyl-armrest"></div>
-                <div className={`vinyl-led ${isEffectivelyRotating ? 'vinyl-led-on' : ''}`}></div>
+
+                {/* LED indicator */}
+                <div className={`vinyl-led ${isPlaying && song ? 'vinyl-led-on' : ''}`}></div>
             </div>
 
-            {song && !hideInfo && (
-                <div className="vinyl-info">
-                    <motion.p
-                        key={song.id + '-title'}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="vinyl-title"
-                    >
-                        {song.title}
-                    </motion.p>
-                    <motion.p
-                        key={song.id + '-artist'}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.6 }}
-                        className="vinyl-artist"
-                    >
-                        {song.artist?.name || song.album?.name || ''}
-                    </motion.p>
+            {/* Song info (Visualized below the base) */}
+            {displaySong && (
+                <div className="vinyl-info mt-6 text-center">
+                    <p className="vinyl-title text-xl font-bold text-white mb-1">
+                        {displaySong.title}
+                    </p>
+                    <p className="vinyl-artist text-sm text-white/60">
+                        {displaySong.artist?.name || displaySong.artist || displaySong.album?.name || 'אמן לא ידוע'}
+                    </p>
                 </div>
             )}
         </div>
