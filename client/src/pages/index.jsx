@@ -4,7 +4,7 @@ import {
     Music, Disc, ListMusic, Search, Upload, RefreshCw,
     ArrowRight, Sparkles, User, Play, FolderOpen, Heart,
     Pause, SkipForward, SkipBack, Trash2, X, HardDrive, AlertCircle, LogOut, Pencil,
-    ThumbsUp, ThumbsDown, Monitor, Settings
+    ThumbsUp, ThumbsDown, Monitor, Settings, Youtube
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMusic } from '@/context/MusicContext';
@@ -440,6 +440,14 @@ const MusicPageContent = () => {
                             </button>
                         </div>
                     )}
+
+                    <button
+                        onClick={() => navigate('/download')}
+                        className="w-10 h-10 rounded-xl music-glass flex items-center justify-center text-red-400 hover:bg-red-500/10 transition-colors"
+                        title="הורד מיוטיוב"
+                    >
+                        <Youtube className="w-5 h-5" />
+                    </button>
 
                     <button
                         onClick={() => setEditMode(!editMode)}

@@ -5,6 +5,12 @@ import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
+import { execFile, exec } from 'child_process';
+import { promisify } from 'util';
+import os from 'os';
+
+const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,13 +36,225 @@ const ensureSupabase = (req, res, next) => {
 };
 
 // ------------------------------------------------------------------
+// === MUSIC DIRECTORY RESOLUTION ===
+// Priority: /Volumes/RANTUNES → ~/Music/RanTunes
+// ------------------------------------------------------------------
+
+const EXTERNAL_DISK_PATH = '/Volumes/RANTUNES';
+const FALLBACK_MUSIC_DIR = path.join(os.homedir(), 'Music', 'RanTunes');
+
+function getMusicDirectory() {
+    // Check if external disk is mounted
+    if (fs.existsSync(EXTERNAL_DISK_PATH)) {
+        console.log(`💿 External disk found: ${EXTERNAL_DISK_PATH}`);
+        return EXTERNAL_DISK_PATH;
+    }
+    // Fallback to local directory
+    console.log(`📁 Using local music dir: ${FALLBACK_MUSIC_DIR}`);
+    return FALLBACK_MUSIC_DIR;
+}
+
+// GET /api/music/disk-status - Check which disk is active
+app.get("/api/music/disk-status", (req, res) => {
+    const externalMounted = fs.existsSync(EXTERNAL_DISK_PATH);
+    const activeDir = getMusicDirectory();
+
+    // Ensure fallback dir exists
+    if (!externalMounted && !fs.existsSync(FALLBACK_MUSIC_DIR)) {
+        fs.mkdirSync(FALLBACK_MUSIC_DIR, { recursive: true });
+    }
+
+    res.json({
+        externalDisk: externalMounted,
+        externalPath: EXTERNAL_DISK_PATH,
+        fallbackPath: FALLBACK_MUSIC_DIR,
+        activeDirectory: activeDir,
+        label: externalMounted ? 'RANTUNES (דיסק חיצוני)' : 'Music/RanTunes (מקומי)'
+    });
+});
+
+// ------------------------------------------------------------------
+// === YOUTUBE DOWNLOAD ===
+// ------------------------------------------------------------------
+
+// Validate YouTube URL
+function isValidYouTubeUrl(url) {
+    return /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]+/.test(url);
+}
+
+// Check if yt-dlp is installed
+async function checkYtDlp() {
+    try {
+        await execAsync('which yt-dlp');
+        return true;
+    } catch {
+        try {
+            await execAsync('which yt-dlp');
+            return true;
+        } catch {
+            return false;
+        }
+    }
+}
+
+// GET /api/download/info - Get video metadata before download
+app.get("/api/download/info", async (req, res) => {
+    const { url } = req.query;
+
+    if (!url || !isValidYouTubeUrl(url)) {
+        return res.status(400).json({ error: 'כתובת YouTube לא תקינה' });
+    }
+
+    try {
+        const hasYtDlp = await checkYtDlp();
+        if (!hasYtDlp) {
+            return res.status(500).json({ error: 'yt-dlp לא מותקן בשרת' });
+        }
+
+        const { stdout } = await execAsync(
+            `yt-dlp --dump-json --no-playlist "${url}"`,
+            { timeout: 15000 }
+        );
+
+        const info = JSON.parse(stdout);
+        res.json({
+            title: info.title,
+            artist: info.artist || info.uploader || info.channel || 'Unknown',
+            duration: info.duration,
+            thumbnail: info.thumbnail,
+            channel: info.uploader || info.channel,
+            uploadDate: info.upload_date
+        });
+    } catch (err) {
+        console.error('yt-dlp info error:', err.message);
+        res.status(500).json({ error: 'לא הצלחתי לקרוא מידע על הסרטון' });
+    }
+});
+
+// POST /api/download/youtube - Download audio from YouTube
+app.post("/api/download/youtube", async (req, res) => {
+    const { url, format = 'mp3', title, artist } = req.body;
+
+    if (!url || !isValidYouTubeUrl(url)) {
+        return res.status(400).json({ error: 'כתובת YouTube לא תקינה' });
+    }
+
+    try {
+        const hasYtDlp = await checkYtDlp();
+        if (!hasYtDlp) {
+            return res.status(500).json({
+                error: 'yt-dlp לא מותקן',
+                install: 'brew install yt-dlp'
+            });
+        }
+
+        const outputDir = getMusicDirectory();
+
+        // Ensure output directory exists
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+
+        console.log(`⬇️ Downloading: ${url} → ${outputDir}`);
+
+        // Build output template - Artist - Title if available
+        const outputTemplate = path.join(outputDir, '%(artist,uploader)s - %(title)s.%(ext)s');
+
+        // Build yt-dlp command
+        const args = [
+            '--no-playlist',
+            '--extract-audio',
+            '--audio-format', format === 'mp3' ? 'mp3' : 'm4a',
+            '--audio-quality', '0',                         // Best quality
+            '--embed-thumbnail',
+            '--add-metadata',
+            '--output', outputTemplate,
+            url
+        ];
+
+        const ytDlpProcess = exec(
+            `yt-dlp ${args.map(a => `"${a}"`).join(' ')}`,
+            { timeout: 120000 }  // 2 min timeout
+        );
+
+        let output = '';
+        let errorOutput = '';
+        let downloadedFile = null;
+
+        ytDlpProcess.stdout.on('data', (data) => {
+            output += data;
+            console.log('[yt-dlp]', data.trim());
+
+            // Detect downloaded filename
+            const match = data.match(/\[ExtractAudio\] Destination: (.+)/);
+            if (match) downloadedFile = match[1].trim();
+
+            // Also check for already-existing file
+            const existsMatch = data.match(/\[download\] (.+) has already been downloaded/);
+            if (existsMatch) downloadedFile = existsMatch[1].trim();
+        });
+
+        ytDlpProcess.stderr.on('data', (data) => {
+            errorOutput += data;
+        });
+
+        ytDlpProcess.on('close', (code) => {
+            if (code !== 0) {
+                console.error('yt-dlp failed:', errorOutput);
+                return res.status(500).json({
+                    error: 'ההורדה נכשלה',
+                    details: errorOutput.slice(-500)
+                });
+            }
+
+            // Try to find the downloaded file if not detected from output
+            if (!downloadedFile) {
+                const recentFiles = fs.readdirSync(outputDir)
+                    .map(f => ({
+                        name: f,
+                        time: fs.statSync(path.join(outputDir, f)).mtime.getTime()
+                    }))
+                    .filter(f => f.name.endsWith('.mp3') || f.name.endsWith('.m4a'))
+                    .sort((a, b) => b.time - a.time);
+
+                if (recentFiles.length > 0) {
+                    downloadedFile = path.join(outputDir, recentFiles[0].name);
+                }
+            }
+
+            const fileName = downloadedFile ? path.basename(downloadedFile) : null;
+            const diskUsed = fs.existsSync(EXTERNAL_DISK_PATH) ? 'external' : 'local';
+
+            console.log(`✅ Downloaded: ${fileName} → ${outputDir} (${diskUsed})`);
+
+            res.json({
+                success: true,
+                fileName,
+                outputDir,
+                diskUsed,
+                diskLabel: diskUsed === 'external' ? 'RANTUNES (דיסק חיצוני)' : 'Music/RanTunes (מקומי)'
+            });
+        });
+
+        ytDlpProcess.on('error', (err) => {
+            console.error('yt-dlp process error:', err);
+            res.status(500).json({ error: err.message });
+        });
+
+    } catch (err) {
+        console.error("Download error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ------------------------------------------------------------------
 // === RanTunes: MUSIC STREAMING & MANAGEMENT ===
 // ------------------------------------------------------------------
 
 // POST /api/music/scan - Scan local directory and sync to DB
 app.post("/api/music/scan", ensureSupabase, async (req, res) => {
     try {
-        const musicDir = process.env.MUSIC_DIRECTORY || path.join(__dirname, 'music');
+        const musicDir = process.env.MUSIC_DIRECTORY || getMusicDirectory();
         if (!fs.existsSync(musicDir)) fs.mkdirSync(musicDir, { recursive: true });
 
         const files = fs.readdirSync(musicDir, { recursive: true });
@@ -48,7 +266,6 @@ app.post("/api/music/scan", ensureSupabase, async (req, res) => {
             const fileName = path.basename(songPath);
             const relativeDir = path.dirname(songPath);
 
-            // Basic metadata from filename
             const parts = fileName.replace(/\.[^/.]+$/, "").split(" - ");
             const artist = parts.length > 1 ? parts[0] : "Unknown Artist";
             const title = parts.length > 1 ? parts[1] : parts[0];
@@ -81,7 +298,7 @@ app.get("/api/music/stream/:id", ensureSupabase, async (req, res) => {
 
         if (error || !song) return res.status(404).json({ error: "Song not found" });
 
-        const musicDir = process.env.MUSIC_DIRECTORY || path.join(__dirname, 'music');
+        const musicDir = process.env.MUSIC_DIRECTORY || getMusicDirectory();
         const fullPath = path.join(musicDir, song.file_path);
 
         if (!fs.existsSync(fullPath)) return res.status(404).json({ error: "File not on disk" });
@@ -99,12 +316,12 @@ app.get("/api/music/stream/:id", ensureSupabase, async (req, res) => {
     }
 });
 
-// GET /api/music/drive-sync - Sync from Google Drive
+// POST /api/music/drive-sync - Sync from Google Drive
 app.post("/api/music/drive-sync", ensureSupabase, async (req, res) => {
     try {
         const DriveSync = (await import('./src/lib/driveSync.js')).default;
         const serviceAccount = process.env.GOOGLE_SERVICE_ACCOUNT_PATH || './service-account.json';
-        const musicDir = process.env.MUSIC_DIRECTORY || path.join(__dirname, 'music');
+        const musicDir = process.env.MUSIC_DIRECTORY || getMusicDirectory();
 
         const sync = new DriveSync(serviceAccount, musicDir);
         const report = await sync.performSync();
@@ -119,4 +336,5 @@ app.post("/api/music/drive-sync", ensureSupabase, async (req, res) => {
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🎵 RanTunes Server running on port ${PORT}`);
+    console.log(`💿 Music dir: ${getMusicDirectory()}`);
 });

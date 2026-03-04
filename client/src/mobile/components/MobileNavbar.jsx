@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
-import { Disc, ListMusic, Heart, Music, Play, Pause } from 'lucide-react';
+import { Disc, ListMusic, Heart, Music, Play, Pause, Youtube } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { isSystemRTL } from '@/lib/localeUtils';
 import { useMusic } from '@/context/MusicContext';
 
 const MobileNavbar = ({ activeTab, onTabChange }) => {
     const rtl = useMemo(() => isSystemRTL(), []);
     const { isPlaying, togglePlay } = useMusic();
+    const navigate = useNavigate();
 
     const TABS = useMemo(() => [
         { id: 'albums', label: rtl ? 'אלבומים' : 'Albums', icon: Disc },
@@ -16,6 +18,13 @@ const MobileNavbar = ({ activeTab, onTabChange }) => {
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a] border-t border-white/10 safe-area-bottom">
+            {/* YouTube Download button - top right corner of navbar */}
+            <button
+                onClick={() => navigate('/download')}
+                className="absolute -top-3 left-3 w-8 h-8 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400 active:scale-90 transition-all"
+            >
+                <Youtube className="w-4 h-4" />
+            </button>
             <div className="flex items-center justify-around h-16 px-2">
                 {TABS.map((tab, idx) => {
                     const isActive = activeTab === tab.id;
