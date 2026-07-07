@@ -4,7 +4,7 @@ import {
     Shuffle, Repeat, Repeat1, Music, List, ChevronDown,
     Heart
 } from 'lucide-react';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import '@/styles/music.css';
 
 /**
@@ -28,7 +28,7 @@ const MusicPlayer = ({ onMinimize, showPlaylist = false }) => {
         setVolume,
         setShuffle,
         setRepeat
-    } = useMusic();
+    } = useRanTunes();
 
 
     // Format time (seconds to MM:SS)

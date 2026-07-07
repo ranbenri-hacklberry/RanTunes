@@ -9,7 +9,7 @@ import MobileAlbums from './pages/MobileAlbums';
 import MobilePlaylists from './pages/MobilePlaylists';
 import MobileArtists from './pages/MobileArtists';
 import MobileFavorites from './pages/MobileFavorites';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import { useRanTunesAuth } from '@/context/RanTunesAuthContext';
 import { getSystemDirection, isSystemRTL } from '@/lib/localeUtils';
 import SpotifyService from '@/lib/spotifyService';
@@ -26,7 +26,7 @@ const MobileLayout = () => {
         isRemoteMode,
         remoteDeviceName,
         fetchSpotifyDevices
-    } = useMusic();
+    } = useRanTunes();
     const { logout: authLogout } = useRanTunesAuth();
 
     // Get direction based on system language

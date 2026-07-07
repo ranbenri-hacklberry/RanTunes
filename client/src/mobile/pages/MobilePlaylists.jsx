@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Upload, Loader2, ListMusic, Play } from 'lucide-react';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import { useAlbums } from '@/hooks/useAlbums';
 import SongRow from '@/components/SongRow';
 import SpotifyPlaylistSearch from '@/pages/components/SpotifyPlaylistSearch';
 
 const MobilePlaylists = () => {
-    const { playSong, currentSong, isPlaying, rateSong } = useMusic();
+    const { playSong, currentSong, isPlaying, rateSong } = useRanTunes();
     const {
         playlists,
         isLoading,

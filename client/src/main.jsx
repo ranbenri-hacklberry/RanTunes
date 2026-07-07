@@ -5,7 +5,7 @@ import App from './App.jsx'
 import SpotifyCallback from './pages/callback/spotify/index.jsx'
 import { RanTunesAuthProvider } from './context/RanTunesAuthContext'
 import { AuthProvider } from './context/AuthContext'
-import { MusicProvider } from './context/MusicContext'
+import { RanTunesProvider } from './context/RanTunesContext'
 import { ConnectionProvider } from './context/ConnectionContext'
 import './styles/music.css'
 
@@ -15,12 +15,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <RanTunesAuthProvider>
         <AuthProvider>
           <ConnectionProvider>
-            <MusicProvider>
+            <RanTunesProvider>
               <Routes>
                 <Route path="/callback/spotify" element={<SpotifyCallback />} />
                 <Route path="/*" element={<App />} />
               </Routes>
-            </MusicProvider>
+            </RanTunesProvider>
           </ConnectionProvider>
         </AuthProvider>
       </RanTunesAuthProvider>

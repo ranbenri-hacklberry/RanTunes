@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { MusicProvider } from './MusicContext';
+import { RanTunesProvider } from './RanTunesContext';
 import { RanTunesAuthProvider } from './RanTunesAuthContext';
 
 // Mock Supabase
@@ -32,15 +32,15 @@ jest.mock('@/hooks/useSpotifyPlayer', () => ({
     })
 }));
 
-describe('MusicContext', () => {
+describe('RanTunesContext', () => {
     it('renders children and provides context', () => {
         const TestComponent = () => <div>Test Child</div>;
 
         render(
             <RanTunesAuthProvider>
-                <MusicProvider>
+                <RanTunesProvider>
                     <TestComponent />
-                </MusicProvider>
+                </RanTunesProvider>
             </RanTunesAuthProvider>
         );
 

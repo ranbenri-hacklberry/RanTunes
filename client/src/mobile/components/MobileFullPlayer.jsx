@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import VinylTurntable from '@/components/VinylTurntable';
 import SpotifyDevicePicker from '@/components/SpotifyDevicePicker';
 import { getSystemDirection, isSystemRTL } from '@/lib/localeUtils';
@@ -39,7 +39,7 @@ const MobileFullPlayer = ({ onClose }) => {
         transitionPhase,
         isRemoteMode,
         remoteDeviceName
-    } = useMusic();
+    } = useRanTunes();
 
     const [isScrubbing, setIsScrubbing] = useState(false);
     const [scrubValue, setScrubValue] = useState(0);

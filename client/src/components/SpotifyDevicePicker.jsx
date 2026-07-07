@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Monitor, Smartphone, Laptop, Speaker, X, RefreshCw, CheckCircle2 } from 'lucide-react';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 
 const SpotifyDevicePicker = ({ onClose }) => {
-    const { spotifyDevices, fetchSpotifyDevices, transferPlayback, transitionPhase } = useMusic();
+    const { spotifyDevices, fetchSpotifyDevices, transferPlayback, transitionPhase } = useRanTunes();
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

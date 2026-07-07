@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Loader2 } from 'lucide-react';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import { useAlbums } from '@/hooks/useAlbums';
 import SongRow from '@/components/SongRow';
 
 const MobileFavorites = () => {
-    const { playSong, currentSong, isPlaying, rateSong } = useMusic();
+    const { playSong, currentSong, isPlaying, rateSong } = useRanTunes();
     const { fetchFavoritesSongs, isLoading } = useAlbums();
 
     const [favoriteSongs, setFavoriteSongs] = useState([]);

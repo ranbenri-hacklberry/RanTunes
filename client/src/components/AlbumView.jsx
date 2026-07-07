@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Play, Clock, Music } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import { useAlbums } from '@/hooks/useAlbums';
 import SongRow from '@/components/SongRow';
 import '@/styles/music.css';
@@ -21,7 +21,7 @@ const getCoverUrl = (localPath) => {
  * Album view component - shows album details and song list
  */
 const AlbumView = ({ album, onBack }) => {
-    const { playSong, currentSong, isPlaying, rateSong } = useMusic();
+    const { playSong, currentSong, isPlaying, rateSong } = useRanTunes();
     const { fetchAlbumSongs } = useAlbums();
 
     const [songs, setSongs] = useState([]);

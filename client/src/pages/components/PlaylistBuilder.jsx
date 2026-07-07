@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Sparkles, Music, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAlbums } from '@/hooks/useAlbums';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import '@/styles/music.css';
 
 /**
@@ -10,7 +10,7 @@ import '@/styles/music.css';
  */
 const PlaylistBuilder = ({ onClose, onSuccess }) => {
     const { artists, generateSmartPlaylist, isLoading } = useAlbums();
-    const { playSong } = useMusic();
+    const { playSong } = useRanTunes();
 
     const [playlistName, setPlaylistName] = useState('פלייליסט חדש');
     const [selectedArtists, setSelectedArtists] = useState([]);

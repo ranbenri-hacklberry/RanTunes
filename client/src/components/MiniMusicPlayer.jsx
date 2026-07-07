@@ -1,6 +1,6 @@
 import React from 'react';
 import { Play, Pause, SkipForward, SkipBack, ThumbsUp, ThumbsDown, Music } from 'lucide-react';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 
 /**
  * Mini music player for headers - RanTunes Dark Version
@@ -14,7 +14,7 @@ const MiniMusicPlayer = ({ onClick }) => {
         rateSong,
         currentTime,
         duration
-    } = useMusic();
+    } = useRanTunes();
 
     if (!currentSong) return null;
 

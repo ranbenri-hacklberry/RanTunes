@@ -2,11 +2,11 @@ import React, { useMemo } from 'react';
 import { Disc, ListMusic, Heart, Music, Play, Pause, Youtube } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { isSystemRTL } from '@/lib/localeUtils';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 
 const MobileNavbar = ({ activeTab, onTabChange }) => {
     const rtl = useMemo(() => isSystemRTL(), []);
-    const { isPlaying, togglePlay } = useMusic();
+    const { isPlaying, togglePlay } = useRanTunes();
     const navigate = useNavigate();
 
     const TABS = useMemo(() => [

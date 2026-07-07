@@ -1,11 +1,11 @@
 import React from 'react';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import { useAlbums } from '@/hooks/useAlbums';
 import AlbumCard from '@/components/AlbumCard';
 import { Loader2 } from 'lucide-react';
 
 const MobileHome = () => {
-    const { playSong } = useMusic();
+    const { playSong } = useRanTunes();
     const { albums, isLoading, fetchAlbumSongs } = useAlbums();
     // Note: refreshAll is called internally by useAlbums on mount, no need to call it here
 

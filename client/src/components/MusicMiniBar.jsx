@@ -3,7 +3,7 @@ import {
     Play, Pause, SkipForward, SkipBack, Volume2, VolumeX,
     Music, ChevronUp
 } from 'lucide-react';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import '@/styles/music.css';
 
 /**
@@ -20,7 +20,7 @@ const MusicMiniBar = ({ onExpandClick }) => {
         setVolume,
         currentTime,
         duration
-    } = useMusic();
+    } = useRanTunes();
 
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 

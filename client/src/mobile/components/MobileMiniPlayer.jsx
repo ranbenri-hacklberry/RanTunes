@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import VinylTurntable from '@/components/VinylTurntable';
 
@@ -8,7 +8,7 @@ const MobileMiniPlayer = ({ onExpand }) => {
         currentSong,
         isPlaying,
         togglePlay,
-    } = useMusic();
+    } = useRanTunes();
 
     if (!currentSong) return null;
 

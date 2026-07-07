@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowRight, ArrowLeft, Upload, Loader2, HardDrive, Trash2, Play } from 'lucide-react';
-import { useMusic } from '@/context/MusicContext';
+import { useRanTunes } from '@/context/RanTunesContext';
 import { useAlbums } from '@/hooks/useAlbums';
 import { useRanTunesAuth } from '@/context/RanTunesAuthContext';
 import AlbumCard from '@/components/AlbumCard';
@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { isSystemRTL } from '@/lib/localeUtils';
 
 const MobileAlbums = () => {
-    const { playSong, currentSong, isPlaying, rateSong } = useMusic();
+    const { playSong, currentSong, isPlaying, rateSong } = useRanTunes();
     const { user: currentUser } = useRanTunesAuth();
     const {
         albums,

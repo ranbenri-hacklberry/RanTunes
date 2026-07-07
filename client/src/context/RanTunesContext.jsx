@@ -5,9 +5,9 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAudioAnalyzer } from '@/hooks/useAudioAnalyzer';
 import { MUSIC_API_URL, SKIP_THRESHOLD } from '@/constants/music';
 
-const MusicContext = createContext(null);
+const RanTunesContext = createContext(null);
 
-export const MusicProvider = ({ children }) => {
+export const RanTunesProvider = ({ children }) => {
     const { user: currentUser } = useRanTunesAuth();
     const handleNextRef = useRef(() => { });
 
@@ -460,13 +460,13 @@ export const MusicProvider = ({ children }) => {
         repeat,
     };
 
-    return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;
+    return <RanTunesContext.Provider value={value}>{children}</RanTunesContext.Provider>;
 };
 
-export const useMusic = () => {
-    const context = useContext(MusicContext);
-    if (!context) throw new Error('useMusic must be used within a MusicProvider');
+export const useRanTunes = () => {
+    const context = useContext(RanTunesContext);
+    if (!context) throw new Error('useRanTunes must be used within a RanTunesProvider');
     return context;
 };
 
-export default MusicContext;
+export default RanTunesContext;
