@@ -20,6 +20,13 @@ app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 
+app.use((req, res, next) => {
+    console.log(`[REQ] ${req.method} ${req.path} - Query: ${JSON.stringify(req.query)} (IP: ${req.ip})`);
+    next();
+});
+
+
+
 // === ENV ===
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -44,14 +51,34 @@ const EXTERNAL_DISK_PATH = '/Volumes/RANTUNES';
 const FALLBACK_MUSIC_DIR = path.join(os.homedir(), 'Music', 'RanTunes');
 
 function getMusicDirectory() {
-    // Check if external disk is mounted
     if (fs.existsSync(EXTERNAL_DISK_PATH)) {
-        console.log(`💿 External disk found: ${EXTERNAL_DISK_PATH}`);
         return EXTERNAL_DISK_PATH;
     }
-    // Fallback to local directory
-    console.log(`📁 Using local music dir: ${FALLBACK_MUSIC_DIR}`);
+    const altOldMac = "/Volumes/Old MacBook/Old Donloads";
+    if (fs.existsSync(altOldMac)) {
+        return altOldMac;
+    }
     return FALLBACK_MUSIC_DIR;
+}
+
+function resolveMusicPath(queryPath) {
+    if (!queryPath) return null;
+    let targetPath = queryPath;
+    if (fs.existsSync(targetPath)) {
+        return targetPath;
+    }
+    if (targetPath.startsWith("/Volumes/RANTUNES")) {
+        const altPath = targetPath.replace("/Volumes/RANTUNES", "/Volumes/Old MacBook/Old Donloads");
+        if (fs.existsSync(altPath)) {
+            return altPath;
+        }
+    }
+    const baseDir = getMusicDirectory();
+    const relativeResolved = path.resolve(baseDir, targetPath);
+    if (fs.existsSync(relativeResolved)) {
+        return relativeResolved;
+    }
+    return null;
 }
 
 // GET /api/music/disk-status - Check which disk is active
@@ -111,8 +138,9 @@ app.get("/api/download/info", async (req, res) => {
             return res.status(500).json({ error: 'yt-dlp לא מותקן בשרת' });
         }
 
-        const { stdout } = await execAsync(
-            `yt-dlp --dump-json --no-playlist "${url}"`,
+        const { stdout } = await execFileAsync(
+            'yt-dlp', 
+            ['--dump-json', '--no-playlist', url],
             { timeout: 15000 }
         );
 
@@ -172,8 +200,9 @@ app.post("/api/download/youtube", async (req, res) => {
             url
         ];
 
-        const ytDlpProcess = exec(
-            `yt-dlp ${args.map(a => `"${a}"`).join(' ')}`,
+        const ytDlpProcess = execFile(
+            'yt-dlp',
+            args,
             { timeout: 120000 }  // 2 min timeout
         );
 
@@ -287,7 +316,7 @@ app.post("/api/music/scan", ensureSupabase, async (req, res) => {
     }
 });
 
-// GET /api/music/stream/:id - Stream a song
+// GET /api/music/stream/:id - Stream a song by ID
 app.get("/api/music/stream/:id", ensureSupabase, async (req, res) => {
     try {
         const { data: song, error } = await supabase
@@ -316,6 +345,47 @@ app.get("/api/music/stream/:id", ensureSupabase, async (req, res) => {
     }
 });
 
+// GET /music/stream?path=...
+app.get("/music/stream", (req, res) => {
+    try {
+        const queryPath = req.query.path;
+        if (!queryPath) return res.status(400).json({ error: "Missing path" });
+
+        const fullPath = resolveMusicPath(queryPath);
+        if (!fullPath || !fs.existsSync(fullPath)) return res.status(404).json({ error: "File not on disk" });
+
+        const lower = fullPath.toLowerCase();
+        if (lower.endsWith('.flac')) {
+            res.type('audio/flac');
+        } else if (lower.endsWith('.mp3')) {
+            res.type('audio/mpeg');
+        } else if (lower.endsWith('.m4a')) {
+            res.type('audio/mp4');
+        } else if (lower.endsWith('.wav')) {
+            res.type('audio/wav');
+        }
+
+        res.sendFile(fullPath);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/music/cover?path=... and /music/cover?path=...
+app.get(["/api/music/cover", "/music/cover"], (req, res) => {
+    try {
+        const queryPath = req.query.path;
+        if (!queryPath) return res.status(400).json({ error: "Missing path" });
+
+        const fullPath = resolveMusicPath(queryPath);
+        if (!fullPath || !fs.existsSync(fullPath)) return res.status(404).json({ error: "File not on disk" });
+
+        res.sendFile(fullPath);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/music/drive-sync - Sync from Google Drive
 app.post("/api/music/drive-sync", ensureSupabase, async (req, res) => {
     try {
@@ -332,6 +402,15 @@ app.post("/api/music/drive-sync", ensureSupabase, async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// Serve frontend static files
+const clientDistPath = path.join(__dirname, '../client/dist');
+if (fs.existsSync(clientDistPath)) {
+    app.use(express.static(clientDistPath));
+    // SPA fallback for all non-API routes
+    app.get(/^(?!\/api).*/, (req, res) => {
+        res.sendFile(path.join(clientDistPath, 'index.html'));
+    });
+}
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {

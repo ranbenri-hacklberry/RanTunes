@@ -1418,13 +1418,16 @@ const MusicPageContent = () => {
                                             if (trackDiff !== 0) return trackDiff;
                                             return (a.title || '').localeCompare(b.title || '', 'he');
                                         });
-                                        return sortedSongs.map((song) => (
+                                        return sortedSongs.map((song, index) => (
                                             <SongRow
                                                 key={song.id}
                                                 song={song}
+                                                index={index}
                                                 isPlaying={isPlaying && currentSong?.id === song.id}
                                                 isCurrentSong={currentSong?.id === song.id}
-                                                onEdit={handleEditClick}
+                                                onPlay={handleSongPlay}
+                                                onEdit={handleSongPlay}
+                                                onRate={handleRate}
                                             />
                                         ));
                                     })()}

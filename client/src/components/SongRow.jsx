@@ -10,10 +10,12 @@ const SongRow = ({
     isPlaying = false,
     isCurrentSong = false,
     onPlay,
+    onEdit,
     onRate
 }) => {
     const handlePlay = () => {
-        onPlay?.(song);
+        const fn = onPlay || onEdit;
+        fn?.(song);
     };
 
     const handleRate = (rating) => {
@@ -33,11 +35,13 @@ const SongRow = ({
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const trackNumber = typeof index === 'number' && !isNaN(index) ? index + 1 : (song.track_number || '');
+    const artistName = (song.artist && song.artist.name) || song.artist || '';
 
     return (
         <div
             id={`song-${song.id}`}
-            className={`music-song-row ${isCurrentSong ? 'playing' : ''} group`}
+            className={`music-song-row ${isCurrentSong ? 'playing' : ''} group cursor-pointer hover:bg-white/5 transition-colors`}
             onClick={handlePlay}
         >
             {/* Track number / Playing indicator */}
@@ -53,7 +57,7 @@ const SongRow = ({
                     <Pause className="w-4 h-4 text-purple-400" />
                 ) : (
                     <span className="text-white/40 text-sm font-medium track-number">
-                        {index + 1}
+                        {trackNumber}
                     </span>
                 )}
             </div>
@@ -63,9 +67,9 @@ const SongRow = ({
                 <h4 className={`font-medium truncate ${isCurrentSong ? 'text-purple-400' : 'text-white'}`}>
                     {song.title}
                 </h4>
-                {song.artist && (
+                {artistName && (
                     <p className="text-white/50 text-sm truncate">
-                        {song.artist.name}
+                        {artistName}
                     </p>
                 )}
             </div>
@@ -75,14 +79,19 @@ const SongRow = ({
                 {formatDuration(song.duration_seconds)}
             </div>
 
-            {/* Play button on hover */}
+            {/* Play button */}
             <button
                 onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-purple-500
-                   flex items-center justify-center opacity-0 group-hover:opacity-100
-                   transition-all ml-2 flex-shrink-0"
+                className="w-8 h-8 rounded-full bg-purple-600 hover:bg-purple-500
+                   flex items-center justify-center
+                   transition-all ml-2 flex-shrink-0 shadow-md"
+                title="נגן"
             >
-                <Play className="w-4 h-4 text-white fill-white" />
+                {isCurrentSong && isPlaying ? (
+                    <Pause className="w-4 h-4 text-white fill-white" />
+                ) : (
+                    <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                )}
             </button>
         </div>
     );
