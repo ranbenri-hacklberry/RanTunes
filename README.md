@@ -1,28 +1,28 @@
-# RanTunes 🎵
+# RanTunes
 
-A beautiful, modern music streaming application with smart playlists and Spotify integration.
+Venue ambiance player for cafes and shops. It manages a local music library, talks to the Spotify Web API, and keeps a live shared playback state with iCaffeOS so the POS / mini-player stays in sync.
 
-## Features
-- 🎧 Local music library management
-- 🎨 Beautiful, responsive UI with glassmorphism design
-- 🎵 Smart playlists with AI-powered recommendations
-- 🔗 Spotify integration for streaming
-- ⭐ Song ratings and favorites
-- 🔐 Secure authentication with Supabase
+Operators can scan a local disk (or an external SSD), rate tracks, build playlists, optionally stream or control Spotify, and run the same player as a web PWA or an Electron desktop app.
 
-## Tech Stack
-**Frontend:**
-- React 18
-- Vite
-- TailwindCSS
-- Framer Motion
-- Lucide Icons
+### Tech Stack
 
-**Backend:**
-- Node.js + Express
-- Supabase (PostgreSQL)
-- Google Drive API (for encrypted music storage)
-- Spotify Web API
+- **Frontend:** React 18, Vite, Tailwind CSS, Framer Motion, PWA
+- **Desktop:** Electron
+- **Backend:** Node.js + Express (local scan, stream, cover art, Drive sync, YouTube ingest)
+- **Data & auth:** Supabase (PostgreSQL) with realtime shared playback
+- **Integrations:** Spotify Web API (PKCE), Google Drive API
+
+### Architecture
+
+```
+Electron / PWA / browser UI  ──►  Express local server (scan, stream, Drive)
+           │
+           └── Supabase (auth, library metadata, music_current_playback)
+                    │
+                    └── realtime ──► iCaffeOS MiniMusicPlayer
+```
+
+Spotify calls go from the client to the Spotify Web API. Local files are served by the Express process. Playback position and now-playing are written to `music_current_playback` so iCaffeOS can follow along.
 
 ## Getting Started
 
@@ -35,7 +35,7 @@ A beautiful, modern music streaming application with smart playlists and Spotify
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/RanTunes.git
+git clone https://github.com/ranbenri-hacklberry/RanTunes.git
 cd RanTunes
 ```
 
